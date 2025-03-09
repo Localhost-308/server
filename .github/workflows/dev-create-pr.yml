@@ -1,0 +1,25 @@
+name: Create PR for dev
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/dev'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: dev
+          branch: ${{ github.ref_name }}
+          title: "PR to dev from ${{ github.ref_name }}"
+          body: "Automated PR to merge changes into dev branch."
+          draft: false
