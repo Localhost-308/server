@@ -1,14 +1,13 @@
-name: Create PR for dev
+name: Create PR for main
 
 on:
   push:
     branches:
-      - '*'
+      - dev
 
 jobs:
   create-pr:
     runs-on: ubuntu-latest
-    if: github.ref != 'refs/heads/dev'
 
     steps:
       - name: Checkout code
@@ -18,8 +17,8 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          base: dev
+          base: main
           branch: ${{ github.ref_name }}
-          title: "PR from ${{ github.ref_name }} to dev"
-          body: "Automated PR to merge changes into dev branch."
-          draft: true
+          title: "PR from ${{ github.ref_name }} to main"
+          body: "Automated PR to merge changes into main branch."
+          draft: false
