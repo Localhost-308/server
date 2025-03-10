@@ -20,7 +20,7 @@ jobs:
           pr_exists=$(gh pr list --state=open --head ${{ github.ref_name }} --base dev --json number --jq 'length')
           if [ "$pr_exists" -eq 0 ]; then
             # Se não existir PR aberta, cria uma nova
-            gh pr create --base dev --head ${{ github.ref_name }} --title "Automated PR for ${{ github.ref_name }}" --body "This is an automated PR from branch ${{ github.ref_name }} to dev."
+            gh pr create --base dev --head ${{ github.ref_name }} --draft --title "Automated PR for ${{ github.ref_name }}" --body "This is an automated PR from branch ${{ github.ref_name }} to dev."
           else
             echo "PR already exists. Skipping creation."
           fi
