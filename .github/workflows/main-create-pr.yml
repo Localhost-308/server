@@ -10,18 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out the repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Create Pull Request to main
-        run: |
-          # Verifica se já existe uma PR aberta para a branch 'main'
-          pr_exists=$(gh pr list --state=open --head ${{ github.ref_name }} --base main --json number --jq 'length')
-          if [ "$pr_exists" -eq 0 ]; then
-            # Se não existir PR aberta, cria uma nova
-            gh pr create --base main --head ${{ github.ref_name }} --title "Automated PR for ${{ github.ref_name }}" --body "This is an automated PR from branch ${{ github.ref_name }} to main."
-          else
-            echo "PR already exists. Skipping creation."
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          branch: ${{ github.ref_name }}
+          title: "PR from ${{ github.ref_name }} to main"
+          body: "Automated PR to merge changes into main branch."
+          draft: false
