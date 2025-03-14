@@ -14,7 +14,7 @@ services:
       FLASK_DEBUG: 1
       FLASK_RUN_HOST: 0.0.0.0
       FLASK_RUN_PORT: 5000
-      DB_ADDR: postgres
+      DB_ADDR: db
       DB_NAME: database
       DB_USER: postgres
       DB_PASSWORD: postgres
@@ -23,9 +23,9 @@ services:
     tty: true
     stdin_open: true
     depends_on:
-      - postgres
+      - db
 
-  postgres:
+  db:
     image: postgres:14-alpine
     environment:
       POSTGRES_USER: postgres

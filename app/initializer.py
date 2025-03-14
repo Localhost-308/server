@@ -23,6 +23,9 @@ def make_shell_context():
         'user': User
     }
 
+with app.app_context():
+    db.create_all()
+
 @app.before_request
 def basic_authentication():
     if request.method.lower() == 'options':

@@ -12,7 +12,7 @@ areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "
 
 @areas.route("/", methods=["GET"])
 @areas.route("/<int:id>", methods=["GET"])
-@jwt_required()
+# @jwt_required()
 def root(id=None):
     if id:
         area = Area.query.get(id)
