@@ -43,6 +43,7 @@ services:
       - .env
     volumes:
       - mongodb_data:/data/db
+      - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh
     networks:
       - default
  
