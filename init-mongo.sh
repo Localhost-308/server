@@ -1,6 +1,4 @@
 #!/bin/bash
-
-# Autentica como o usuário admin
 mongosh --host localhost -u "admin" -p "adminpassword" --authenticationDatabase "admin" <<EOF
 use admin
 db.createUser({
