@@ -2,7 +2,7 @@
 class Messages:
     @staticmethod
     def ERROR_NOT_FOUND(obj_nm: str):
-        return f"{obj_nm} not found!"
+        return f"{obj_nm} not found"
 
     @staticmethod
     def ERROR_INVALID_DATA(obj_nm: str):
