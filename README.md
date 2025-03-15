@@ -15,9 +15,9 @@ docker compose up
 ---
 
 Após iniciar o projeto, acesse a documentação via Swagger pelo seguinte link:
-```
-http://localhost:5005/apidocs/
 ```sh
+http://localhost:5005/apidocs/
+```
 
 ---
 
