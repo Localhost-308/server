@@ -16,6 +16,7 @@ services:
     stdin_open: true
     depends_on:
       - db
+      - mongodb
 
   db:
     image: postgres:14-alpine
@@ -23,3 +24,18 @@ services:
       - .env
     ports:
       - "5440:5432"
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    env_file:
+      - .env
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - default
+ 
+volumes:
+  mongodb_data:

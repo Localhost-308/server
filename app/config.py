@@ -15,3 +15,4 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY')
     JWT_ACCESS_TOKEN_EXPIRES = 3600
     API_URL_PREFIX = '/api/v0'
+    MONGO_URI = os.environ.get('MONGO_URI')
