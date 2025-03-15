@@ -14,6 +14,13 @@ docker compose up
 
 ---
 
+Após iniciar o projeto, acesse a documentação via Swagger pelo seguinte link:
+```
+http://localhost:5005/apidocs/
+```sh
+
+---
+
 ## 🗄️ Acessando o Banco de Dados no Container
 Para acessar o banco de dados dentro do container, siga os passos abaixo:
 
