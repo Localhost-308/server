@@ -10,19 +10,54 @@ area_information = Blueprint(
     "area_information", __name__, url_prefix=app.config["API_URL_PREFIX"] + "/area-information"
 )
 
-
 @area_information.route("/", methods=["GET"])
 # @jwt_required()
 @swag_from({
     'tags': ['Area Information'],
-    'summary': 'Get all area information',
-    'description': 'Returns information about the area, including CO2 avoided, tree growth, water availability and a lot of other information about the area.',
+    'summary': 'Get filtered area information',
+    'description': 'Retrieve area information based on optional filters like area_id and date range.',
+    'parameters': [
+        {
+            'name': 'area_id',
+            'in': 'query',
+            'required': False,
+            'schema': {'type': 'integer'},
+            'description': 'The ID of the area'
+        },
+        {
+            'name': 'start_date',
+            'in': 'query',
+            'required': False,
+            'schema': {'type': 'string', 'format': 'date'},
+            'description': 'Start date for filtering (YYYY-MM-DD)'
+        },
+        {
+            'name': 'end_date',
+            'in': 'query',
+            'required': False,
+            'schema': {'type': 'string', 'format': 'date'},
+            'description': 'End date for filtering (YYYY-MM-DD)'
+        }
+    ],
     'responses': {
         200: {
-            'description': 'A list of area information',
+            'description': 'Aggregated area information based on the provided filters',
+            'content': {
+                'application/json': {
+                    'example': [
+                        {
+                            "measurement_date": "2024-02",
+                            "total_avoided_co2": 1500.5
+                        }
+                    ]
+                }
+            }
         },
-        404: {
-            'description': Messages.ERROR_NOT_FOUND('Area Information')
+        400: {
+            'description': Messages.ERROR_INVALID_DATA('Area Information')
+        },
+        500: {
+            'description': Messages.UNKNOWN_ERROR('Area Information')
         }
     }
 })
@@ -56,9 +91,9 @@ def get_all_by():
         return jsonify(area_info)
 
     except KeyError as error:
-        abort(404, description=Messages.ERROR_INVALID_DATA('Area Information'))
+        abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
     except Exception as error:
-        abort(404, description=Messages.UNKNOWN_ERROR('Area Information'))
+        abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
 
 # @area_information.route("/<int:area_id>", methods=["GET"])
 # # @jwt_required()
@@ -120,7 +155,7 @@ def get_all_by():
 def post():
     data = request.json
     if not data:
-        abort(404, description=Messages.ERROR_INVALID_DATA('Area Information'))
+        abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
 
     mongo.db.api.insert_one(data)
     return jsonify({"msg": Messages.SUCCESS_SAVE_SUCCESSFULLY('Area Information')})
