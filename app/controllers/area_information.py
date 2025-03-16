@@ -4,12 +4,12 @@ from flask import Blueprint, abort, request, jsonify
 from flasgger import swag_from
 
 from app.util.messages import Messages
-from app.schemas import CompanySchema
 from app.initializer import app, mongo
 
 area_information = Blueprint(
     "area_information", __name__, url_prefix=app.config["API_URL_PREFIX"] + "/area-information"
 )
+
 
 @area_information.route("/", methods=["GET"])
 # @jwt_required()
@@ -26,32 +26,84 @@ area_information = Blueprint(
         }
     }
 })
-def get_all():
-    area_info = list(mongo.db.api.find({}, {"_id": 0}))
-    if not area_info:
-        abort(404, description=Messages.ERROR_NOT_FOUND('Area Information'))
-    return jsonify(area_info)
+def get_all_by():
+    try:
+        filters = {}
+        params = request.args.to_dict()
+
+        if 'area_id' in params:
+            filters['area_id'] = int(params['area_id'])
+
+        if 'start_date' in params or 'end_date' in params:
+            filters['measurement_date'] = {
+                "$gte": params['start_date'],
+                "$lt": params['end_date']
+            }
+
+        pipeline = [
+            {"$match": filters},
+            {
+                "$group": {
+                    "_id": {"$substr": ["$measurement_date", 0, 7]},
+                    "total_avoided_co2": {"$sum": "$avoided_co2_emissions_m3"}
+                }
+            },
+            {"$sort": {"_id": 1}},
+            {"$project": {"_id": 0, "measurement_date": "$_id", "total_avoided_co2": 1}}
+        ]
+
+        area_info = list(mongo.db.api.aggregate(pipeline))
+        return jsonify(area_info)
+
+    except KeyError as error:
+        abort(404, description=Messages.ERROR_INVALID_DATA('Area Information'))
+    except Exception as error:
+        abort(404, description=Messages.UNKNOWN_ERROR('Area Information'))
+
+# @area_information.route("/<int:area_id>", methods=["GET"])
+# # @jwt_required()
+# @swag_from({
+#     'tags': ['Area Information'],
+#     'summary': 'Get area information by ID',
+#     'description': 'Retrieve specific area information based on the provided area_id.',
+#     'parameters': [
+#         {'name': 'area_id', 'in': 'path', 'required': True, 'type': 'integer', 'description': 'The ID of the area'}
+#     ],
+#     'responses': {
+#         200: {'description': 'Area information retrieved successfully'},
+#         404: {'description': Messages.ERROR_NOT_FOUND('Area Information')}
+#     }
+# })
+# def get_by_area_id(area_id):
+#     area_info = list(mongo.db.api.find({"area_id": area_id}, {"_id": 0, "avoided_co2_emissions_m3": 1, "measurement_date": 1}))
+#     if not area_info:
+#         abort(404, description=Messages.ERROR_NOT_FOUND('Area Information'))
+#     return jsonify(area_info)
 
 
-@area_information.route("/<int:area_id>", methods=["GET"])
+# @area_information.route("/<int:area_id><str:date>", methods=["GET"])
 # @jwt_required()
-@swag_from({
-    'tags': ['Area Information'],
-    'summary': 'Get area information by ID',
-    'description': 'Retrieve specific area information based on the provided area_id.',
-    'parameters': [
-        {'name': 'area_id', 'in': 'path', 'required': True, 'type': 'integer', 'description': 'The ID of the area'}
-    ],
-    'responses': {
-        200: {'description': 'Area information retrieved successfully'},
-        404: {'description': Messages.ERROR_NOT_FOUND('Area Information')}
-    }
-})
-def get_by_area_id(area_id):
-    area_info = list(mongo.db.api.find({"area_id":area_id}, {"_id": 0}))
-    if not area_info:
-        abort(404, description=Messages.ERROR_NOT_FOUND('Area Information'))
-    return jsonify(area_info)
+# @swag_from({
+#     'tags': ['Area Information'],
+#     'summary': 'Get area information by ID',
+#     'description': 'Retrieve specific area information based on the provided area_id.',
+#     'parameters': [
+#         {'name': 'area_id', 'in': 'path', 'required': True, 'type': 'integer', 'description': 'The ID of the area'}
+#     ],
+#     'responses': {
+#         200: {'description': 'Area information retrieved successfully'},
+#         404: {'description': Messages.ERROR_NOT_FOUND('Area Information')}
+#     }
+# })
+# @area_information.route("/", methods=["GET"])
+# def get_by_area_filters():
+    # area_info = list(mongo.db.api.find({"area_id": area_id, "measurement_date": date}, {"_id": 0, "avoided_co2_emissions_m3": 1, "measurement_date": 1}))
+    # if not area_info:
+    #     abort(404, description=Messages.ERROR_NOT_FOUND('Area Information'))
+    # area_id = request.args.get("area_id", type=int)
+    # date = request.args.get("date", type=str)
+    # return f"Area ID: {area_id}, Date: {date}"
+    # return jsonify(area_info)
 
 
 @area_information.route("/", methods=["POST"])
