@@ -10,3 +10,4 @@ PyJWT==2.8.0
 Flask-Cors==4.0.1
 Werkzeug==3.0.3
 Flask-PyMongo==2.3.0
+flasgger==0.9.7.1
