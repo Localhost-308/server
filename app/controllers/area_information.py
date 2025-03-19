@@ -42,23 +42,35 @@ area_information = Blueprint(
     ],
     'responses': {
         200: {
-            'description': 'Aggregated area information based on the provided filters',
-            'content': {
-                'application/json': {
-                    'example': [
-                        {
-                            "measurement_date": "2024-02",
-                            "total_avoided_co2": 1500.5
-                        }
-                    ]
+            'description': 'Aggregated tree information successfully retrieved.',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'measurement_date': {'type': 'string', 'example': '2025-03-19'},
+                        'total_avoided_co2': {'type': 'number', 'example': 164.3}
+                    }
                 }
             }
         },
         400: {
-            'description': Messages.ERROR_INVALID_DATA('Area Information')
+            'description': 'Invalid input data. Ensure the area ID and dates are correct.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('Area Information')}
+                }
+            }
         },
         500: {
-            'description': Messages.UNKNOWN_ERROR('Area Information')
+            'description': 'Internal server error occurred.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.UNKNOWN_ERROR('Area Information')}
+                }
+            }
         }
     }
 })
@@ -121,11 +133,68 @@ def save_area_information():
 # @jwt_required()
 @swag_from({
     'tags': ['Area Information'],
-    'summary': 'Create a new area information entry',
-    'description': 'Add a new area information record to the database.',
+    'summary': 'Retrieve area information on tree measurements',
+    'description': 'Fetches aggregated data on tree measurements (such as number of trees lost, growth, etc.) for a given area and date range.',
+    'parameters': [
+        {
+            'name': 'area_id',
+            'in': 'query',
+            'type': 'integer',
+            'description': 'ID of the area to filter the data by.',
+            'required': False
+        },
+        {
+            'name': 'start_date',
+            'in': 'query',
+            'type': 'string',
+            'format': 'date',
+            'description': 'Start date of the date range to filter the data (YYYY-MM-DD). Default is 2000-01-01.',
+            'required': False
+        },
+        {
+            'name': 'end_date',
+            'in': 'query',
+            'type': 'string',
+            'format': 'date',
+            'description': 'End date of the date range to filter the data (YYYY-MM-DD). Default is the current date.',
+            'required': False
+        }
+    ],
     'responses': {
-        201: {'description': 'Area information created successfully'},
-        400: {'description': Messages.ERROR_INVALID_DATA('Area Information')}
+        200: {
+            'description': 'Aggregated tree information successfully retrieved.',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'measurement_date': {'type': 'string', 'example': '2025-03-19'},
+                        'total_number_of_trees_lost': {'type': 'integer', 'example': 12042},
+                        'total_average_tree_growth_cm': {'type': 'number', 'example': 164.3},
+                        'total_trees_alive_so_far': {'type': 'integer', 'example': 54884},
+                        'total_tree_survival_rate': {'type': 'number', 'example': 82.00}
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Invalid input data. Ensure the area ID and dates are correct.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('Area Information')}
+                }
+            }
+        },
+        500: {
+            'description': 'Internal server error occurred.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.UNKNOWN_ERROR('Area Information')}
+                }
+            }
+        }
     }
 })
 def get_tree_information():
