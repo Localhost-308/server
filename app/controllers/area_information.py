@@ -233,22 +233,27 @@ def get_tree_information():
                 "total_number_of_trees_lost": 1,
                 "total_living_trees_to_date": 1,
                 "survival_rate": {
-                    "$cond": {
-                        "if": {
-                            "$eq": [
-                                {"$add": ["$total_number_of_trees_lost", "$total_living_trees_to_date"]}, 0
-                            ]
-                        },
-                        "then": 0,
-                        "else": {
-                            "$divide": [
-                                "$total_living_trees_to_date",
-                                {
-                                    "$add": ["$total_number_of_trees_lost", "$total_living_trees_to_date"]
+                    "$round": [
+                        {
+                            "$cond": {
+                                "if": {
+                                    "$eq": [
+                                        {"$add": ["$total_number_of_trees_lost", "$total_living_trees_to_date"]}, 0
+                                    ]
+                                },
+                                "then": 0,
+                                "else": {
+                                    "$divide": [
+                                        "$total_living_trees_to_date",
+                                        {
+                                            "$add": ["$total_number_of_trees_lost", "$total_living_trees_to_date"]
+                                        }
+                                    ]
                                 }
-                            ]
-                        }
-                    }
+                            }
+                        },
+                        4
+                    ]
                 }
             }}
         ]
@@ -302,7 +307,7 @@ def get_tree_information():
                     'type': 'object',
                     'properties': {
                         'measurement_date': {'type': 'string', 'example': '2025-03'},
-                        'avg_soil_fertility_index_percent': {'type': 'number', 'example': 75.6}  # Média das porcentagens
+                        'avg_soil_fertility_index_percent': {'type': 'number', 'example': 75.2}
                     }
                 }
             }
