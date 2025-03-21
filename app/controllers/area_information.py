@@ -260,3 +260,136 @@ def get_tree_information():
         abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
     except Exception as error:
         abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
+
+
+@area_information.route("/soil", methods=["GET"])
+# @jwt_required()
+@swag_from({
+    'tags': ['Area Information'],
+    'summary': 'Retrieve aggregated soil fertility index by month and year',
+    'description': 'Fetches aggregated data for soil fertility index, calculated as the average percentage, for a given area and date range.',
+    'parameters': [
+        {
+            'name': 'area_id',
+            'in': 'query',
+            'type': 'integer',
+            'description': 'ID of the area to filter the data by.',
+            'required': False
+        },
+        {
+            'name': 'start_date',
+            'in': 'query',
+            'type': 'string',
+            'format': 'date',
+            'description': 'Start date of the date range to filter the data (YYYY-MM-DD). Default is 2000-01-01.',
+            'required': False
+        },
+        {
+            'name': 'end_date',
+            'in': 'query',
+            'type': 'string',
+            'format': 'date',
+            'description': 'End date of the date range to filter the data (YYYY-MM-DD). Default is the current date.',
+            'required': False
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Aggregated soil fertility index successfully retrieved.',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'measurement_date': {'type': 'string', 'example': '2025-03'},
+                        'avg_soil_fertility_index_percent': {'type': 'number', 'example': 75.6}  # Média das porcentagens
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Invalid input data. Ensure the area ID and dates are correct.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('Area Information')}
+                }
+            }
+        },
+        500: {
+            'description': 'Internal server error occurred.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.UNKNOWN_ERROR('Area Information')}
+                }
+            }
+        }
+    }
+})
+def get_soil_information():
+    try:
+        filters = {}
+        params = request.args
+        area_id = params.get('area_id', False)
+        start_date = params.get('start_date', '2000-01-01')
+        end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
+
+        if area_id:
+            filters['area_id'] = int(area_id)
+
+        if start_date or end_date:
+            filters['measurement_date'] = {
+                "$gte": start_date,
+                "$lt": end_date
+            }
+        
+        pipeline = [
+            {"$match": filters},
+            {
+                "$group": {
+                    "_id": {"$substr": ["$measurement_date", 0, 7]},
+                    "avg_soil_fertility_index_percent": {"$avg": "$soil_fertility_index_percent"}
+                }
+            },
+            {"$sort": {"_id": 1}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "measurement_date": "$_id",
+                    "avg_soil_fertility_index_percent": {
+                        "$round": ["$avg_soil_fertility_index_percent", 2]
+                    }
+                }
+            }
+        ]
+        # pipeline = [
+        #     {"$match": filters},
+        #     {
+        #         "$group": {
+        #             "_id": {
+        #                 "measurement_date": {"$substr": ["$measurement_date", 0, 7]},
+        #                 "fertilization": "$fertilization"
+        #             },
+        #             "avg_soil_fertility_index_percent": {"$avg": "$soil_fertility_index_percent"}
+        #         }
+        #     },
+        #     {"$sort": {"_id.measurement_date": 1, "_id.fertilization": 1}},
+        #     {
+        #         "$project": {
+        #             "_id": 0,
+        #             "measurement_date": "$_id.measurement_date",
+        #             "fertilization": "$_id.fertilization",
+        #             "avg_soil_fertility_index_percent": {
+        #                 "$round": ["$avg_soil_fertility_index_percent", 2]
+        #             }
+        #         }
+        #     }
+        # ]
+
+        area_info = list(mongo.db.api.aggregate(pipeline))
+        return jsonify(area_info)
+    except KeyError as error:
+        abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
+    except Exception as error:
+        abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
