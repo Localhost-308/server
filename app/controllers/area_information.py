@@ -1,10 +1,9 @@
-from datetime import datetime
-
 from marshmallow import ValidationError
 from flask_jwt_extended import jwt_required
 from flask import Blueprint, abort, request, jsonify
 from flasgger import swag_from
 
+from datetime import datetime
 from app.util.messages import Messages
 from app.initializer import app, mongo
 
@@ -17,10 +16,10 @@ area_information = Blueprint(
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Get filtered area information',
-    'description': 'Retrieve area information based on optional filters like name and date range.',
+    'description': 'Retrieve area information based on optional filters like area_id and date range.',
     'parameters': [
         {
-            'name': 'area_name',
+            'name': 'area_id',
             'in': 'query',
             'required': False,
             'schema': {'type': 'integer'},
@@ -79,12 +78,12 @@ def get_all_by():
     try:
         filters = {}
         params = request.args
-        area_name = params.get('area_name', False)
+        area_id = params.get('area_id', False)
         start_date = params.get('start_date', '2000-01-01')
         end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
 
-        if area_name:
-            filters['area_name'] = int(area_name)
+        if area_id:
+            filters['area_id'] = int(area_id)
 
         if start_date or end_date:
             filters['measurement_date'] = {
@@ -141,7 +140,7 @@ def save_area_information():
     'description': 'Fetches aggregated data on tree measurements (such as number of trees lost, growth, etc.) for a given area and date range.',
     'parameters': [
         {
-            'name': 'area_name',
+            'name': 'area_id',
             'in': 'query',
             'type': 'integer',
             'description': 'ID of the area to filter the data by.',
@@ -205,12 +204,12 @@ def get_tree_information():
     try:
         filters = {}
         params = request.args
-        area_name = params.get('area_name', False)
+        area_id = params.get('area_id', False)
         start_date = params.get('start_date', '2000-01-01')
         end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
 
-        if area_name:
-            filters['area_name'] = int(area_name)
+        if area_id:
+            filters['area_id'] = int(area_id)
 
         if start_date or end_date:
             filters['measurement_date'] = {
@@ -253,7 +252,7 @@ def get_tree_information():
                 }
             }}
         ]
-
+        
         tree_info = list(mongo.db.api.aggregate(pipeline))
         return jsonify(tree_info)
 
