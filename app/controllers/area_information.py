@@ -80,7 +80,7 @@ def get_all_by():
             {
                 "$group": {
                     "_id": {"$substr": ["$measurement_date", 0, 7]},
-                    "total_avoided_co2": {"$sum": "$avoided_co2_emissions_m3"}
+                    "total_avoided_co2": {"$sum": "$avoided_co2_emissions_cubic_meters"}
                 }
             },
             {"$sort": {"_id": 1}},
