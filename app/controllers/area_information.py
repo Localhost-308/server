@@ -93,11 +93,39 @@ def get_all_by():
             {
                 "$group": {
                     "_id": {"$substr": ["$measurement_date", 0, 7]},
-                    "total_avoided_co2": {"$sum": "$avoided_co2_emissions_m3"}
+                    "total_number_of_trees_lost": {"$sum": "$number_of_trees_lost"},
+                    "total_average_tree_growth_cm": {"$sum": "$average_tree_growth_cm"},
+                    "total_trees_alive_so_far": {"$sum": "$trees_alive_so_far"},
+                    "total_tree_survival_rate": {"$sum": "$tree_survival_rate"}
                 }
             },
             {"$sort": {"_id": 1}},
-            {"$project": {"_id": 0, "measurement_date": "$_id", "total_avoided_co2": 1}}
+            {"$project": {
+                "_id": 0,
+                "measurement_date": "$_id",
+                "total_number_of_trees_lost": 1,
+                "total_average_tree_growth_cm": 1,
+                "total_trees_alive_so_far": 1,
+                "total_tree_survival_rate": 1,
+                "survival_rate": {
+                    "$cond": {
+                        "if": {
+                            "$eq": [
+                                {"$add": ["$total_number_of_trees_lost", "$total_trees_alive_so_far"]}, 0
+                            ]
+                        },
+                        "then": 0,
+                        "else": {
+                            "$divide": [
+                                "$total_trees_alive_so_far",
+                                {
+                                    "$add": ["$total_number_of_trees_lost", "$total_trees_alive_so_far"]
+                                }
+                            ]
+                        }
+                    }
+                }
+            }}
         ]
 
         area_info = list(mongo.db.api.aggregate(pipeline))
