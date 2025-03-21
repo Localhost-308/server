@@ -1,5 +1,3 @@
-from marshmallow import ValidationError
-from flask_jwt_extended import jwt_required
 from flask import Blueprint, abort, request, jsonify
 from flasgger import swag_from
 
@@ -15,10 +13,10 @@ area_information = Blueprint(
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Get filtered area information',
-    'description': 'Retrieve area information based on optional filters like area_id and date range.',
+    'description': 'Retrieve area information based on optional filters like name and date range.',
     'parameters': [
         {
-            'name': 'area_id',
+            'name': 'area_name',
             'in': 'query',
             'required': False,
             'schema': {'type': 'integer'},
@@ -66,8 +64,8 @@ def get_all_by():
         filters = {}
         params = request.args.to_dict()
 
-        if 'area_id' in params:
-            filters['area_id'] = int(params['area_id'])
+        if 'area_name' in params:
+            filters['area_name'] = params['area_name']
 
         if 'start_date' in params or 'end_date' in params:
             filters['measurement_date'] = {
