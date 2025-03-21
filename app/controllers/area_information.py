@@ -362,8 +362,19 @@ def get_soil_information():
                 "$project": {
                     "_id": 0,
                     "measurement_date": "$_id",
+                    # "avg_soil_fertility_index_percent": {
+                    #     "$round": ["$avg_soil_fertility_index_percent", 2]
+                    # },
                     "avg_soil_fertility_index_percent": {
-                        "$round": ["$avg_soil_fertility_index_percent", 2]
+                        "$round": [
+                            {
+                                "$divide": [
+                                    "$avg_soil_fertility_index_percent",
+                                    100
+                                ]
+                            },
+                            4
+                        ]
                     }
                 }
             }
