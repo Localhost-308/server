@@ -77,15 +77,18 @@ area_information = Blueprint(
 def get_all_by():
     try:
         filters = {}
-        params = request.args.to_dict()
+        params = request.args
+        area_id = params.get('area_id', False)
+        start_date = params.get('start_date', '2000-01-01')
+        end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
 
-        if 'area_id' in params:
-            filters['area_id'] = int(params['area_id'])
+        if area_id:
+            filters['area_id'] = int(area_id)
 
-        if 'start_date' in params or 'end_date' in params:
+        if start_date or end_date:
             filters['measurement_date'] = {
-                "$gte": params['start_date'],
-                "$lt": params['end_date']
+                "$gte": start_date,
+                "$lt": end_date
             }
 
         pipeline = [
@@ -93,7 +96,7 @@ def get_all_by():
             {
                 "$group": {
                     "_id": {"$substr": ["$measurement_date", 0, 7]},
-                    "total_avoided_co2": {"$sum": "$avoided_co2_emissions_m3"}
+                    "total_avoided_co2": {"$sum": "$avoided_co2_emissions_cubic_meters"}
                 }
             },
             {"$sort": {"_id": 1}},
@@ -201,19 +204,12 @@ def get_tree_information():
     try:
         filters = {}
         params = request.args
-
         area_id = params.get('area_id', False)
         start_date = params.get('start_date', '2000-01-01')
         end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
 
-        msg = {
-            'area id': area_id,
-            'start date': start_date,
-            'end date': end_date
-        }
-
-        if params.get('area_id', False):
-            filters['area_id'] = int(params['area_id'])
+        if area_id:
+            filters['area_id'] = int(area_id)
 
         if start_date or end_date:
             filters['measurement_date'] = {
@@ -227,9 +223,7 @@ def get_tree_information():
                 "$group": {
                     "_id": {"$substr": ["$measurement_date", 0, 7]},
                     "total_number_of_trees_lost": {"$sum": "$number_of_trees_lost"},
-                    "total_average_tree_growth_cm": {"$sum": "$average_tree_growth_cm"},
-                    "total_trees_alive_so_far": {"$sum": "$trees_alive_so_far"},
-                    "total_tree_survival_rate": {"$sum": "$tree_survival_rate"}
+                    "total_living_trees_to_date": {"$sum": "$living_trees_to_date"}
                 }
             },
             {"$sort": {"_id": 1}},
@@ -237,22 +231,20 @@ def get_tree_information():
                 "_id": 0,
                 "measurement_date": "$_id",
                 "total_number_of_trees_lost": 1,
-                "total_average_tree_growth_cm": 1,
-                "total_trees_alive_so_far": 1,
-                "total_tree_survival_rate": 1,
+                "total_living_trees_to_date": 1,
                 "survival_rate": {
                     "$cond": {
                         "if": {
                             "$eq": [
-                                {"$add": ["$total_number_of_trees_lost", "$total_trees_alive_so_far"]}, 0
+                                {"$add": ["$total_number_of_trees_lost", "$total_living_trees_to_date"]}, 0
                             ]
                         },
                         "then": 0,
                         "else": {
                             "$divide": [
-                                "$total_trees_alive_so_far",
+                                "$total_living_trees_to_date",
                                 {
-                                    "$add": ["$total_number_of_trees_lost", "$total_trees_alive_so_far"]
+                                    "$add": ["$total_number_of_trees_lost", "$total_living_trees_to_date"]
                                 }
                             ]
                         }
@@ -260,7 +252,7 @@ def get_tree_information():
                 }
             }}
         ]
-
+        
         tree_info = list(mongo.db.api.aggregate(pipeline))
         return jsonify(tree_info)
 
@@ -268,4 +260,3 @@ def get_tree_information():
         abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
     except Exception as error:
         abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
-
