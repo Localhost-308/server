@@ -139,8 +139,8 @@ def reflorested_area():
         
         print(areas)
         
-        # if not areas:
-        #     abort(400)
+        if not areas:
+            abort(400)
         
         result = []
         for area in areas:
