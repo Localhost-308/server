@@ -1,6 +1,5 @@
 from app.models.base import Base, db
 
-
 class Area(Base):
     __tablename__ = "areas"
     area_name = db.Column(db.String(50), nullable=False)
