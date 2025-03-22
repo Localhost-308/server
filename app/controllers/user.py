@@ -16,7 +16,7 @@ users = Blueprint(
 
 @users.route('/', methods=['GET', 'POST'])
 @users.route('/<int:id>', methods=['GET'])
-@jwt_required()
+# @jwt_required()
 def root(id=None):
     user_query = User.query
     if request.method == 'GET':

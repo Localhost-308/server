@@ -1,8 +1,10 @@
-from flask import Flask, request, Response
+from flask_cors import CORS
+from flasgger import Swagger
+from flask_migrate import Migrate
+from flask_pymongo import PyMongo
 from flask_jwt_extended import JWTManager
 from flask_marshmallow import Marshmallow
-from flask_migrate import Migrate
-from flask_cors import CORS
+from flask import Flask, request, Response
 
 from app.models import User
 from app.config import Config
@@ -14,13 +16,16 @@ db.init_app(app)
 ma = Marshmallow(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
+swagger = Swagger(app)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
+mongo = PyMongo(app, uri=app.config["MONGO_URI"])
 
 @app.shell_context_processor
 def make_shell_context():
     return {
         'db': db,
-        'user': User
+        'user': User,
+        'mongo': mongo
     }
 
 with app.app_context():
