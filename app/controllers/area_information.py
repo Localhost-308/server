@@ -353,56 +353,26 @@ def get_soil_information():
             {"$match": filters},
             {
                 "$group": {
-                    "_id": {"$substr": ["$measurement_date", 0, 7]},
+                    "_id": {
+                        "measurement_date": {"$substr": ["$measurement_date", 0, 7]},
+                        "fertilization": "$fertilization"
+                    },
                     "avg_soil_fertility_index_percent": {"$avg": "$soil_fertility_index_percent"}
                 }
             },
-            {"$sort": {"_id": 1}},
+            {"$sort": {"_id.measurement_date": 1, "_id.fertilization": 1}},
             {
                 "$project": {
                     "_id": 0,
-                    "measurement_date": "$_id",
-                    # "avg_soil_fertility_index_percent": {
-                    #     "$round": ["$avg_soil_fertility_index_percent", 2]
-                    # },
+                    "measurement_date": "$_id.measurement_date",
+                    "fertilization": "$_id.fertilization",
                     "avg_soil_fertility_index_percent": {
-                        "$round": [
-                            {
-                                "$divide": [
-                                    "$avg_soil_fertility_index_percent",
-                                    100
-                                ]
-                            },
-                            4
-                        ]
+                        "$round": ["$avg_soil_fertility_index_percent", 2]
                     }
                 }
             }
         ]
-        # pipeline = [
-        #     {"$match": filters},
-        #     {
-        #         "$group": {
-        #             "_id": {
-        #                 "measurement_date": {"$substr": ["$measurement_date", 0, 7]},
-        #                 "fertilization": "$fertilization"
-        #             },
-        #             "avg_soil_fertility_index_percent": {"$avg": "$soil_fertility_index_percent"}
-        #         }
-        #     },
-        #     {"$sort": {"_id.measurement_date": 1, "_id.fertilization": 1}},
-        #     {
-        #         "$project": {
-        #             "_id": 0,
-        #             "measurement_date": "$_id.measurement_date",
-        #             "fertilization": "$_id.fertilization",
-        #             "avg_soil_fertility_index_percent": {
-        #                 "$round": ["$avg_soil_fertility_index_percent", 2]
-        #             }
-        #         }
-        #     }
-        # ]
-
+        
         area_info = list(mongo.db.api.aggregate(pipeline))
         return jsonify(area_info)
     except KeyError as error:
