@@ -1,7 +1,8 @@
-from flask import Blueprint, abort, request
+from flask import Blueprint, abort, request, jsonify
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 
+from app.util.messages import Messages
 from app.initializer import app
 from app.database import db
 from app.models import Area
@@ -68,3 +69,41 @@ def update(id):
         return AreaSchema().dump(updated_area), 200
     except ValidationError as err:
         return {"errors": err.messages}, 400
+
+
+@areas.route("/reflorested-area", methods=["GET"])
+# @jwt_required()
+def reflorested_area():
+    try:
+        areas = []
+        params = request.args
+        area_id = params.get('area_id', False)
+
+        if area_id:
+            areas = Area.query.get(area_id)
+        else:
+            areas = Area.query.all()
+        
+        if not areas:
+            abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
+        
+        result = []
+
+        print(areas)
+        
+        for area in areas:
+            total_area = area.total_area_hectares
+            reflorested_area = area.reflorested_area_hectares
+            initial_planted_area = area.initial_planted_area_hectares
+            result.append({
+                "id": area.id,
+                "total_area_hectares": total_area,
+                "reflorested_area_hectares": reflorested_area,
+                "initial_planted_area_hectares": initial_planted_area,
+                "total_reflorested_and_planted": reflorested_area + initial_planted_area
+            })
+        
+        return jsonify(result)
+    
+    except Exception as error:
+        return abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
