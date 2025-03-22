@@ -12,7 +12,7 @@ area_information = Blueprint(
 )
 
 @area_information.route("/", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Get filtered area information',
@@ -113,7 +113,7 @@ def get_all_by():
 
 
 @area_information.route("/", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Create a new area information entry',
@@ -307,7 +307,7 @@ def get_tree_information():
                     'type': 'object',
                     'properties': {
                         'measurement_date': {'type': 'string', 'example': '2025-03'},
-                        'fertilization': {'type': 'string', 'example': 'Orgânica'}
+                        'fertilization': {'type': 'string', 'example': 'Orgânica'},
                         'avg_soil_fertility_index_percent': {'type': 'number', 'example': 0.7502}
                     }
                 }

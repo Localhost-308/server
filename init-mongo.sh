@@ -5,8 +5,8 @@ db.createUser({
   user: "admin",
   pwd: "adminpassword",
   roles: [{ role: "root", db: "admin" }]
-})
-use api
+});
+use api;
 db.createUser({
   user: "admin",
   pwd: "adminpassword",
