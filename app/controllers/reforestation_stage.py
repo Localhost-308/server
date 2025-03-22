@@ -8,7 +8,9 @@ from app.models import Area, Localization
 from app.schemas import AreaSchema
 
 
-reforestation = Blueprint("reforestation", __name__, url_prefix=app.config["API_URL_PREFIX"] + "/reforestation")
+reforestation = Blueprint(
+    "reforestation", __name__, url_prefix=app.config["API_URL_PREFIX"] + "/reforestation"
+)
 
 def get_area_ids_by_uf(uf):
     areas = db.session.query(Area.id).join(Localization).filter(Localization.uf == uf).with_entities(Area.id).all()
