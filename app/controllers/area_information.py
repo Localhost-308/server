@@ -42,35 +42,23 @@ area_information = Blueprint(
     ],
     'responses': {
         200: {
-            'description': 'Aggregated tree information successfully retrieved.',
-            'schema': {
-                'type': 'array',
-                'items': {
-                    'type': 'object',
-                    'properties': {
-                        'measurement_date': {'type': 'string', 'example': '2025-03-19'},
-                        'total_avoided_co2': {'type': 'number', 'example': 164.3}
-                    }
+            'description': 'Aggregated area information based on the provided filters',
+            'content': {
+                'application/json': {
+                    'example': [
+                        {
+                            "measurement_date": "2024-02",
+                            "total_avoided_co2": 1500.5
+                        }
+                    ]
                 }
             }
         },
         400: {
-            'description': 'Invalid input data. Ensure the area ID and dates are correct.',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('Area Information')}
-                }
-            }
+            'description': Messages.ERROR_INVALID_DATA('Area Information')
         },
         500: {
-            'description': 'Internal server error occurred.',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'message': {'type': 'string', 'example': Messages.UNKNOWN_ERROR('Area Information')}
-                }
-            }
+            'description': Messages.UNKNOWN_ERROR('Area Information')
         }
     }
 })
@@ -87,8 +75,8 @@ def get_all_by():
 
         if start_date or end_date:
             filters['measurement_date'] = {
-                "$gte": start_date,
-                "$lt": end_date
+                "$gte": datetime.strptime(start_date, "%Y-%m-%d"),
+                "$lt": datetime.strptime(end_date, "%Y-%m-%d")
             }
 
         pipeline = [
@@ -213,8 +201,8 @@ def get_tree_information():
 
         if start_date or end_date:
             filters['measurement_date'] = {
-                "$gte": start_date,
-                "$lt": end_date
+                "$gte": datetime.strptime(start_date, "%Y-%m-%d"),
+                "$lt": datetime.strptime(end_date, "%Y-%m-%d"),
             }
 
         pipeline = [
@@ -257,7 +245,7 @@ def get_tree_information():
                 }
             }}
         ]
-        
+
         tree_info = list(mongo.db.api.aggregate(pipeline))
         return jsonify(tree_info)
 
@@ -346,10 +334,10 @@ def get_soil_information():
 
         if start_date or end_date:
             filters['measurement_date'] = {
-                "$gte": start_date,
-                "$lt": end_date
+                "$gte": datetime.strptime(start_date, "%Y-%m-%d"),
+                "$lt": datetime.strptime(end_date, "%Y-%m-%d"),
             }
-        
+
         pipeline = [
             {"$match": filters},
             {
@@ -373,7 +361,7 @@ def get_soil_information():
                 }
             }
         ]
-        
+
         area_info = list(mongo.db.api.aggregate(pipeline))
         return jsonify(area_info)
     except KeyError as error:
