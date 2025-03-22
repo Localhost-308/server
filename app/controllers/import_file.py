@@ -114,8 +114,6 @@ def import_csv_sql():
         return jsonify({"error": str(e)}), 500
 
 
-
-
 @files.route("/csv_nosql", methods=["POST"])
 @swag_from({
     'tags': ['Import CSV'],
@@ -142,6 +140,7 @@ def import_csv_sql():
         }
     }
 })
+
 def import_csv_nosql():
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
@@ -172,29 +171,32 @@ def import_csv_nosql():
             return jsonify({"error": f"Missing required columns in file - missing_columns: {missing_columns}"}), 400
 
         for _, row in df.iterrows():
-            area_measurements = {
-                "soil_fertility_index_percent": row["soil_fertility_index_percent"],
-                "area_code": row["area_code"],
-                "area_name": row["area_name"],
-                "avoided_co2_emissions_cubic_meters": float(row["avoided_co2_emissions_cubic_meters"]),
-                "number_of_trees_lost": int(row["number_of_trees_lost"]),
-                "tree_health_status": row["tree_health_status"],
-                "average_tree_growth_cm": float(row["average_tree_growth_cm"]),
-                "water_sources": row["water_sources"],
-                "water_quality_indicators": row["water_quality_indicators"],
-                "pest_management": row["pest_management"],
-                "fertilization": row["fertilization"],
-                "irrigation": row["irrigation"],
-                "environmental_threats": row["environmental_threats"],
-                "total_project_cost_brl": float(row["total_project_cost_brl"]),
-                "funding_source": row["funding_source"],
-                "stage_indicator": row["stage_indicator"],
-                "measurement_date": datetime.strptime(row["measurement_date"], "%Y-%m-%d"),
-                "living_trees_to_date": int(row["living_trees_to_date"]),
-                "tree_survival_rate": float(row["tree_survival_rate"]),
-            }
+            area = Area.query.filter_by(area_name=row["area_name"]).first()
+            if area is not None:
+                area_measurements = {
+                    "area_id": area.id,
+                    "soil_fertility_index_percent": row["soil_fertility_index_percent"],
+                    "area_code": row["area_code"],
+                    "area_name": row["area_name"],
+                    "avoided_co2_emissions_cubic_meters": float(row["avoided_co2_emissions_cubic_meters"]),
+                    "number_of_trees_lost": int(row["number_of_trees_lost"]),
+                    "tree_health_status": row["tree_health_status"],
+                    "average_tree_growth_cm": float(row["average_tree_growth_cm"]),
+                    "water_sources": row["water_sources"],
+                    "water_quality_indicators": row["water_quality_indicators"],
+                    "pest_management": row["pest_management"],
+                    "fertilization": row["fertilization"],
+                    "irrigation": row["irrigation"],
+                    "environmental_threats": row["environmental_threats"],
+                    "total_project_cost_brl": float(row["total_project_cost_brl"]),
+                    "funding_source": row["funding_source"],
+                    "stage_indicator": row["stage_indicator"],
+                    "measurement_date": datetime.strptime(row["measurement_date"], "%Y-%m-%d"),
+                    "living_trees_to_date": int(row["living_trees_to_date"]),
+                    "tree_survival_rate": float(row["tree_survival_rate"]),
+                }
 
-            mongo.db.api.insert_one(area_measurements)
+                mongo.db.api.insert_one(area_measurements)
 
         return jsonify({"message": "Data imported successfully"}), 201
 
