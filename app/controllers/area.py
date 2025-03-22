@@ -129,15 +129,13 @@ def reflorested_area():
         areas = []
         params = request.args
         area_id = params.get('area_id', None)
-        print(area_id)
+        
         if area_id:
             area = Area.query.get(area_id)
             if area:
                 areas.append(area)
         else:
             areas = Area.query.all()
-        
-        print(areas)
         
         if not areas:
             abort(400)
