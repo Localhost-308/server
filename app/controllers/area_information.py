@@ -307,6 +307,7 @@ def get_tree_information():
                     'type': 'object',
                     'properties': {
                         'measurement_date': {'type': 'string', 'example': '2025-03'},
+                        'fertilization': {'type': 'string', 'example': 'Orgânica'}
                         'avg_soil_fertility_index_percent': {'type': 'number', 'example': 0.7502}
                     }
                 }
