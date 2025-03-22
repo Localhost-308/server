@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, request, jsonify
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
+from flasgger import swag_from
 
 from app.util.messages import Messages
 from app.initializer import app
@@ -72,31 +73,82 @@ def update(id):
 
 
 @areas.route("/reflorested-area", methods=["GET"])
+@swag_from({
+    'tags': ['Area Information'],
+    'summary': 'Retrieve reflorested area information for specified areas',
+    'description': 'Fetches data related to total area, reflorested area, and initially planted area for given areas.',
+    'parameters': [
+        {
+            'name': 'area_id',
+            'in': 'query',
+            'type': 'integer',
+            'description': 'ID of the area to filter the data by.',
+            'required': False
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Reflorested area information successfully retrieved.',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'area_name': {'type': 'string', 'example': 'Área de Conservação 1'},
+                        'total_area_hectares': {'type': 'number', 'example': 150.5},
+                        'reflorested_area_hectares': {'type': 'number', 'example': 75.2},
+                        'initial_planted_area_hectares': {'type': 'number', 'example': 50.0},
+                        'total_reflorested_and_planted': {'type': 'number', 'example': 125.2}
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Invalid input data. Ensure the area ID is correct.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('area_id=?')}
+                }
+            }
+        },
+        500: {
+            'description': 'Internal server error occurred.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.UNKNOWN_ERROR('Area')}
+                }
+            }
+        }
+    }
+})
 # @jwt_required()
 def reflorested_area():
     try:
         areas = []
         params = request.args
-        area_id = params.get('area_id', False)
-
+        area_id = params.get('area_id', None)
+        print(area_id)
         if area_id:
-            areas = Area.query.get(area_id)
+            area = Area.query.get(area_id)
+            if area:
+                areas.append(area)
         else:
             areas = Area.query.all()
         
-        if not areas:
-            abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
-        
-        result = []
-
         print(areas)
         
+        # if not areas:
+        #     abort(400)
+        
+        result = []
         for area in areas:
             total_area = area.total_area_hectares
             reflorested_area = area.reflorested_area_hectares
             initial_planted_area = area.initial_planted_area_hectares
             result.append({
-                "id": area.id,
+                "area_name": area.area_name,
                 "total_area_hectares": total_area,
                 "reflorested_area_hectares": reflorested_area,
                 "initial_planted_area_hectares": initial_planted_area,
@@ -106,4 +158,6 @@ def reflorested_area():
         return jsonify(result)
     
     except Exception as error:
-        return abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
+        abort(400, description=Messages.ERROR_INVALID_DATA(f'area_id={area_id}'))
+    except Exception as error:
+        abort(500, description=Messages.UNKNOWN_ERROR('Area'))
