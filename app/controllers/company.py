@@ -14,7 +14,7 @@ companies = Blueprint(
 
 @companies.route("/", methods=["GET"])
 @companies.route("/<int:id>", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 def root(id=None):
     if id:
         company = Company.query.get(id)

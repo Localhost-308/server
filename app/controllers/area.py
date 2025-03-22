@@ -2,19 +2,20 @@ from flask import Blueprint, abort, request, jsonify
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 from flasgger import swag_from
+from sqlalchemy import func
 
 from app.util.messages import Messages
 from app.initializer import app
 from app.database import db
-from app.models import Area
-from app.schemas import AreaSchema
+from app.models import Area, Localization
+from app.schemas import AreaSchema, AreaExtendedSchema
 
 areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "/areas")
 
 
 @areas.route("/", methods=["GET"])
 @areas.route("/<int:id>", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 def root(id=None):
     if id:
         area = Area.query.get(id)
@@ -79,11 +80,36 @@ def update(id):
     'description': 'Fetches data related to total area, reflorested area, and initially planted area for given areas.',
     'parameters': [
         {
-            'name': 'area_id',
+            'name': 'area_id_1',
             'in': 'query',
             'type': 'integer',
-            'description': 'ID of the area to filter the data by.',
-            'required': False
+            'description': 'First area ID to filter the data by.',
+            'required': False,
+            'example': 1
+        },
+        {
+            'name': 'area_id_2',
+            'in': 'query',
+            'type': 'integer',
+            'description': 'Second area ID to filter the data by.',
+            'required': False,
+            'example': 2
+        },
+        {
+            'name': 'uf',
+            'in': 'query',
+            'type': 'string',
+            'description': 'Federal unit (UF) to filter the areas.',
+            'required': False,
+            'example': 'SP'
+        },
+        {
+            'name': 'city',
+            'in': 'query',
+            'type': 'string',
+            'description': 'City name to filter the areas.',
+            'required': False,
+            'example': 'São Paulo'
         }
     ],
     'responses': {
@@ -94,21 +120,23 @@ def update(id):
                 'items': {
                     'type': 'object',
                     'properties': {
+                        'uf': {'type': 'string', 'example': 'SP'},
+                        'city': {'type': 'string', 'example': 'São Paulo'},
                         'area_name': {'type': 'string', 'example': 'Área de Conservação 1'},
                         'total_area_hectares': {'type': 'number', 'example': 150.5},
-                        'reflorested_area_hectares': {'type': 'number', 'example': 75.2},
+                        'reflorested_area_hectares': {'type': 'number', 'example': 75.0},
                         'initial_planted_area_hectares': {'type': 'number', 'example': 50.0},
-                        'total_reflorested_and_planted': {'type': 'number', 'example': 125.2}
+                        'total_reflorested_and_planted': {'type': 'number', 'example': 125.0}
                     }
                 }
             }
         },
         400: {
-            'description': 'Invalid input data. Ensure the area ID is correct.',
+            'description': 'Invalid input data. Ensure area IDs, UF, or city are correct.',
             'schema': {
                 'type': 'object',
                 'properties': {
-                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('area_id=?')}
+                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('area_id_1=?, area_id_2=?, uf=?, city=?')}
                 }
             }
         },
@@ -126,36 +154,36 @@ def update(id):
 # @jwt_required()
 def reflorested_area():
     try:
-        areas = []
         params = request.args
-        area_id = params.get('area_id', None)
+        area_id_1 = params.get('area_id_1', default=None, type=int)
+        area_id_2 = params.get('area_id_2', default=None, type=int)
+        uf = params.get('uf', default=None, type=str)
+        city = params.get('city', default=None, type=str)
         
-        if area_id:
-            area = Area.query.get(area_id)
-            if area:
-                areas.append(area)
-        else:
-            areas = Area.query.all()
+        area_id_list = []
+        area_id_list.append(area_id_1) if area_id_1 else None
+        area_id_list.append(area_id_2) if area_id_2 else None
         
+        areas = db.session.query(
+            Localization.uf,
+            Localization.city,
+            Area.area_name, 
+            Area.total_area_hectares, 
+            Area.reflorested_area_hectares, 
+            Area.initial_planted_area_hectares,
+            (Area.reflorested_area_hectares + Area.initial_planted_area_hectares).label('total_reflorested_and_planted')
+        ).join(Localization).filter(
+            (Area.id.in_(area_id_list)) if area_id_list else True,
+            (func.upper(Localization.uf) == uf.upper()) if uf else True,
+            (func.upper(Localization.city) == city.upper()) if city else True
+        ).all()
+
         if not areas:
             abort(400)
         
-        result = []
-        for area in areas:
-            total_area = area.total_area_hectares
-            reflorested_area = area.reflorested_area_hectares
-            initial_planted_area = area.initial_planted_area_hectares
-            result.append({
-                "area_name": area.area_name,
-                "total_area_hectares": total_area,
-                "reflorested_area_hectares": reflorested_area,
-                "initial_planted_area_hectares": initial_planted_area,
-                "total_reflorested_and_planted": reflorested_area + initial_planted_area
-            })
-        
-        return jsonify(result)
+        return AreaExtendedSchema(many=True).dump(areas)
     
     except Exception as error:
-        abort(400, description=Messages.ERROR_INVALID_DATA(f'area_id={area_id}'))
+        abort(400, description=Messages.ERROR_INVALID_DATA(f'area_id={area_id_list} or uf={uf}'))
     except Exception as error:
         abort(500, description=Messages.UNKNOWN_ERROR('Area'))

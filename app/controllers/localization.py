@@ -16,7 +16,7 @@ localizations = Blueprint(
 
 @localizations.route("/", methods=["GET"])
 @localizations.route("/<int:id>", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 def root(id=None):
     if id:
         localization = Localization.query.get(id)
@@ -31,7 +31,7 @@ def root(id=None):
 
 
 @localizations.route("/", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 def post():
     data = request.json
     new_company = Localization()
@@ -43,7 +43,7 @@ def post():
 
 
 @localizations.route("/<int:id>", methods=["DELETE"])
-# @jwt_required()
+@jwt_required()
 def delete(id):
     localization = Localization.query.get(id)
     if not localization:
