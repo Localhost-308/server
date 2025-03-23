@@ -1,5 +1,6 @@
 from flask import Blueprint, abort, request, jsonify
 from flasgger import swag_from
+from flask_jwt_extended import jwt_required
 
 from datetime import datetime
 
@@ -67,7 +68,7 @@ def get_all_by():
     try:
         filters = {}
         params = request.args
-        area_id = params.get('area_id', False)
+        area_id = params.get('area_id', None)
         start_date = params.get('start_date', '2000-01-01')
         end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
 
@@ -76,8 +77,8 @@ def get_all_by():
 
         if start_date or end_date:
             filters['measurement_date'] = {
-                "$gte": datetime.strptime(start_date, "%Y-%m-%d"),
-                "$lt": datetime.strptime(end_date, "%Y-%m-%d")
+                "$gte": start_date,
+                "$lt": end_date
             }
 
         pipeline = [
@@ -103,6 +104,7 @@ def get_all_by():
 
 @area_information.route("/", methods=["POST"])
 @jwt_required()
+@jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Create a new area information entry',
@@ -122,6 +124,7 @@ def save_area_information():
 
 
 @area_information.route("/tree", methods=["GET"])
+@jwt_required()
 @jwt_required()
 @swag_from({
     'tags': ['Area Information'],
