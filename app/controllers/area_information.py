@@ -104,7 +104,6 @@ def get_all_by():
 
 @area_information.route("/", methods=["POST"])
 @jwt_required()
-@jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Create a new area information entry',
@@ -124,7 +123,6 @@ def save_area_information():
 
 
 @area_information.route("/tree", methods=["GET"])
-@jwt_required()
 @jwt_required()
 @swag_from({
     'tags': ['Area Information'],
@@ -375,6 +373,7 @@ def get_soil_information():
 
 
 @area_information.route("/total-planted-trees", methods=["GET"])
+@jwt_required()
 @swag_from({
     "tags": ["Area Information"],
     "summary": "Total de árvores plantadas ",
