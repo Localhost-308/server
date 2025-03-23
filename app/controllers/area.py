@@ -80,20 +80,12 @@ def update(id):
     'description': 'Fetches data related to total area, reflorested area, and initially planted area for given areas.',
     'parameters': [
         {
-            'name': 'area_id_1',
+            'name': 'area_id',
             'in': 'query',
             'type': 'integer',
             'description': 'First area ID to filter the data by.',
             'required': False,
             'example': 1
-        },
-        {
-            'name': 'area_id_2',
-            'in': 'query',
-            'type': 'integer',
-            'description': 'Second area ID to filter the data by.',
-            'required': False,
-            'example': 2
         },
         {
             'name': 'uf',
@@ -136,7 +128,7 @@ def update(id):
             'schema': {
                 'type': 'object',
                 'properties': {
-                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('area_id_1=?, area_id_2=?, uf=?, city=?')}
+                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('area_id=?, uf=?, city=?')}
                 }
             }
         },
@@ -155,14 +147,9 @@ def update(id):
 def reflorested_area():
     try:
         params = request.args
-        area_id_1 = params.get('area_id_1', default=None, type=int)
-        area_id_2 = params.get('area_id_2', default=None, type=int)
+        area_id = params.get('area_id', default=None, type=int)
         uf = params.get('uf', default=None, type=str)
         city = params.get('city', default=None, type=str)
-        
-        area_id_list = []
-        area_id_list.append(area_id_1) if area_id_1 else None
-        area_id_list.append(area_id_2) if area_id_2 else None
         
         areas = db.session.query(
             Localization.uf,
@@ -173,7 +160,7 @@ def reflorested_area():
             Area.initial_planted_area_hectares,
             (Area.reflorested_area_hectares + Area.initial_planted_area_hectares).label('total_reflorested_and_planted')
         ).join(Localization).filter(
-            (Area.id.in_(area_id_list)) if area_id_list else True,
+            (Area.id == area_id) if area_id else True,
             (func.upper(Localization.uf) == uf.upper()) if uf else True,
             (func.upper(Localization.city) == city.upper()) if city else True
         ).all()
