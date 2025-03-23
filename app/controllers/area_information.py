@@ -482,7 +482,7 @@ def get_total_planted_trees():
         abort(500, description=str(error))
 
 
-@area_information.route("/average_tree_survival", methods=["GET"])
+@area_information.route("/average-tree-survival", methods=["GET"])
 @swag_from({
     "tags": ["Area Information"],
     "summary": "Obter a média da taxa de sobrevivência de árvores por tipo de solo",
