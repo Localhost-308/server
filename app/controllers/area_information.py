@@ -526,7 +526,7 @@ def get_total_planted_trees():
     "tags": ["Area Information"]
 })
 @area_information.route("/reforested-area-summary", methods=["GET"])
-def get_reforested_area_by_uf():
+def get_reforested_area_summary():
     query = (
         db.session.query(
             Localization.uf,
