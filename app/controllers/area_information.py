@@ -88,8 +88,8 @@ def get_all_by():
 
         if start_date or end_date:
             filters['measurement_date'] = {
-                "$gte": start_date,
-                "$lt": end_date
+                # "$gte": start_date,
+                # "$lt": end_date
             }
 
         pipeline = [
