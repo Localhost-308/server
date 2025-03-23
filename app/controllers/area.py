@@ -143,14 +143,13 @@ def update(id):
         }
     }
 })
-# @jwt_required()
+@jwt_required()
 def reflorested_area():
+    params = request.args
+    area_id = params.get('area_id', default=None, type=int)
+    uf = params.get('uf', default=None, type=str)
+    city = params.get('city', default=None, type=str)
     try:
-        params = request.args
-        area_id = params.get('area_id', default=None, type=int)
-        uf = params.get('uf', default=None, type=str)
-        city = params.get('city', default=None, type=str)
-        
         areas = db.session.query(
             Localization.uf,
             Localization.city,
@@ -171,6 +170,6 @@ def reflorested_area():
         return AreaExtendedSchema(many=True).dump(areas)
     
     except Exception as error:
-        abort(400, description=Messages.ERROR_INVALID_DATA(f'area_id={area_id_list} or uf={uf}'))
+        abort(400, description=Messages.ERROR_INVALID_DATA(f'area_id={area_id} or uf={uf} or city={city}'))
     except Exception as error:
         abort(500, description=Messages.UNKNOWN_ERROR('Area'))
