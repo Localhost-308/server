@@ -1,8 +1,11 @@
+import pandas as pd
 from flask import Blueprint, abort, request, jsonify
 from flasgger import swag_from
 from flask_jwt_extended import jwt_required
 
 from datetime import datetime
+
+from sqlalchemy import func
 
 from app.database import db
 from app.models import Area, Localization
@@ -478,3 +481,88 @@ def get_total_planted_trees():
 
     except Exception as error:
         abort(500, description=str(error))
+
+
+@swag_from({
+    "summary": "Obter sumário de reflorestamento por UF/Tipo de solo/Tecnica de plantio",
+    "description": "Retorna a soma da área reflorestada agrupada por estado (UF), tipo de solo e técnica de plantio.",
+    "responses": {
+        200: {
+            "description": "Retorna um JSON com os totais de área reflorestada por estado.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "sp": {
+                            "total": 123412341234,
+                            "soil_type": {
+                                "total": 100,
+                                "pedregoso": 50,
+                                "argiloso": 50
+                            },
+                            "planting_techniques": {
+                                "total": 100,
+                                "foo": 30,
+                                "bar": 70
+                            }
+                        },
+                        "mg": {
+                            "total": 200,
+                            "soil_type": {
+                                "total": 200,
+                                "arenoso": 80,
+                                "humoso": 120
+                            },
+                            "planting_techniques": {
+                                "total": 200,
+                                "hidroponia": 90,
+                                "orgânico": 110
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "tags": ["Area Information"]
+})
+@area_information.route("/reforested-area-summary", methods=["GET"])
+def get_reforested_area_by_uf():
+    query = (
+        db.session.query(
+            Localization.uf,
+            Localization.soil_type,
+            Area.planting_techniques,
+            func.sum(Area.reflorested_area_hectares).label("total_area")
+        )
+        .join(Localization, Area.localization_id == Localization.id)
+        .group_by(Localization.uf, Localization.soil_type, Area.planting_techniques)
+        .all()
+    )
+
+    df = pd.DataFrame(query, columns=["uf", "soil_type", "planting_techniques", "total_area"])
+
+    if df.empty:
+        return jsonify({})
+
+    df["uf"] = df["uf"].str.lower()
+
+    total_by_uf = df.groupby("uf")["total_area"].sum().to_dict()
+
+    total_by_soil = df.groupby(["uf", "soil_type"])["total_area"].sum().unstack(fill_value=0)
+    total_by_soil["total"] = total_by_soil.sum(axis=1)
+    total_by_soil = total_by_soil.to_dict(orient="index")
+
+    total_by_technique = df.groupby(["uf", "planting_techniques"])["total_area"].sum().unstack(fill_value=0)
+    total_by_technique["total"] = total_by_technique.sum(axis=1)
+    total_by_technique = total_by_technique.to_dict(orient="index")
+
+    result = {
+        uf: {
+            "total": total_by_uf[uf],
+            "soil_type": total_by_soil.get(uf, {"total": 0}),
+            "planting_techniques": total_by_technique.get(uf, {"total": 0})
+        }
+        for uf in total_by_uf
+    }
+
+    return jsonify(result)
