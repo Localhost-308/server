@@ -16,6 +16,51 @@ areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "
 @areas.route("/", methods=["GET"])
 @areas.route("/<int:id>", methods=["GET"])
 #@jwt_required()
+@swag_from({
+    'tags': ['Area Information'],
+    'summary': 'Retrieve area information',
+    'description': 'Fetches information about all areas or a specific area by ID.',
+    'parameters': [
+        {
+            'name': 'id',
+            'in': 'path',
+            'type': 'integer',
+            'description': 'ID of the area to retrieve.',
+            'required': False,
+            'example': 1
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Successfully retrieved area information.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'title': {'type': 'string', 'example': 'Ficha Técnica da Área Selecionada'},
+                    'area_name': {'type': 'string', 'example': 'Área 1'},
+                    'number_of_trees_planted': {'type': 'integer', 'example': 1000},
+                    'planting_techniques': {'type': 'string', 'example': 'Técnica X'},
+                    'total_area_hectares': {'type': 'number', 'example': 200.5},
+                    'reflorested_area_hectares': {'type': 'number', 'example': 120.0},
+                    'planted_species': {'type': 'string', 'example': 'Espécie Y'},
+                    'initial_planted_area_hectares': {'type': 'number', 'example': 50.0},
+                    'initial_vegetation_cover': {'type': 'string', 'example': 'Cobertura Z'},
+                    'localization_id': {'type': 'integer', 'example': 5},
+                    'company_id': {'type': 'integer', 'example': 2}
+                }
+            }
+        },
+        404: {
+            'description': 'Area not found.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': 'Area not found!'}
+                }
+            }
+        }
+    }
+})
 def root(id=None):
     if id:
         area = Area.query.get(id)
