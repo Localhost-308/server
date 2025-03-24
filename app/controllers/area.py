@@ -67,15 +67,10 @@ def root(id=None):
         if not area:
             abort(404, description="Area not found!")
         return jsonify({
-        "title": "Ficha Técnica da Área Selecionada",
         "area_name": area.area_name,
-        "number_of_trees_planted": area.number_of_trees_planted,
-        "planting_techniques": area.planting_techniques,
         "total_area_hectares": area.total_area_hectares,
         "reflorested_area_hectares": area.reflorested_area_hectares,
-        "planted_species": area.planted_species,
         "initial_planted_area_hectares": area.initial_planted_area_hectares,
-        "initial_vegetation_cover": area.initial_vegetation_cover,
         "localization_id": area.localization_id,
         "company_id": area.company_id
     })
