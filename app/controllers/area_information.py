@@ -528,7 +528,6 @@ def get_funding_by_uf_year():
     uf = request.args.get("uf", type=str)
     year = request.args.get("year", type=int)
 
-    # Monta a query de filtro condicionalmente
     mongo_query = {}
     if year:
         mongo_query["measurement_date"] = {
