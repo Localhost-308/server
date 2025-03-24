@@ -1,3 +1,4 @@
+import pandas as pd
 from flask import Blueprint, abort, request, jsonify
 from flasgger import swag_from
 from flask_jwt_extended import jwt_required
@@ -478,3 +479,88 @@ def get_total_planted_trees():
 
     except Exception as error:
         abort(500, description=str(error))
+
+
+@swag_from({
+    "tags": ["Area Information"],
+    "summary": "Obter total de custos de projetos por fonte de financiamento",
+    "description": "Retorna o total de custos de projetos (`total_project_cost_brl`) agrupados por fonte de financiamento (`funding_source`)."
+                   "Os resultados podem ser filtrados por estado (`uf`) e ano (`year`). Se nenhum parâmetro for passado, retorna os valores totais.",
+    "parameters": [
+        {
+            "name": "uf",
+            "in": "query",
+            "type": "string",
+            "required": False,
+            "description": "Sigla do estado (UF) para filtrar os resultados."
+        },
+        {
+            "name": "year",
+            "in": "query",
+            "type": "integer",
+            "required": False,
+            "description": "Ano para filtrar os dados."
+        }
+    ],
+    "responses": {
+        200: {
+            "description": "Resposta com os valores totais e percentuais por fonte de financiamento.",
+            "examples": {
+                "application/json": {
+                    "uf": "sp",
+                    "year": 2024,
+                    "total": 200000.0,
+                    "funding_sources": {
+                        "Governo": {"total": 100000.0, "percent": 50.0},
+                        "ONG": {"total": 60000.0, "percent": 30.0},
+                        "Privado": {"total": 40000.0, "percent": 20.0}
+                    }
+                }
+            }
+        },
+        404: {
+            "description": "Nenhum dado encontrado para os filtros fornecidos."
+        }
+    }
+})
+@area_information.route("/funding_by_uf_year", methods=["GET"])
+def get_funding_by_uf_year():
+    uf = request.args.get("uf", type=str)
+    year = request.args.get("year", type=int)
+
+    mongo_query = {}
+    if year:
+        mongo_query["measurement_date"] = {
+            "$gte": datetime(year, 1, 1),
+            "$lt": datetime(year + 1, 1, 1),
+        }
+    mongo_data = list(mongo.db.api.find(mongo_query, {"area_id": 1, "funding_source": 1, "total_project_cost_brl": 1, "_id": 0}))
+
+    if not mongo_data:
+        return jsonify({"error": "Nenhum dado encontrado para os filtros fornecidos."}), 404
+
+    df = pd.DataFrame(mongo_data)
+
+    if uf:
+        areas = db.session.query(Area.id, Localization.uf).join(Localization, Area.localization_id == Localization.id).all()
+        area_uf_map = {area.id: area.uf.lower() for area in areas}
+        df["uf"] = df["area_id"].map(area_uf_map)
+
+        df = df[df["uf"] == uf.lower()]
+
+    funding_totals = df.groupby("funding_source")["total_project_cost_brl"].sum()
+
+    total = funding_totals.sum()
+    funding_percentages = (funding_totals / total * 100).round(2)
+
+    result = {
+        "uf": uf.lower() if uf else "all",
+        "year": year if year else "all",
+        "total": total,
+        "funding_sources": {
+            source.lower().replace(" ", "_"): {"total": float(value), "percent": float(funding_percentages[source])}
+            for source, value in funding_totals.items()
+        }
+    }
+
+    return jsonify(result)
