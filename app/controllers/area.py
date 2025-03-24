@@ -15,13 +15,25 @@ areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "
 
 @areas.route("/", methods=["GET"])
 @areas.route("/<int:id>", methods=["GET"])
-@jwt_required()
+#@jwt_required()
 def root(id=None):
     if id:
         area = Area.query.get(id)
         if not area:
             abort(404, description="Area not found!")
-        return AreaSchema().dump(area)
+        return jsonify({
+        "title": "Ficha Técnica da Área Selecionada",
+        "area_name": area.area_name,
+        "number_of_trees_planted": area.number_of_trees_planted,
+        "planting_techniques": area.planting_techniques,
+        "total_area_hectares": area.total_area_hectares,
+        "reflorested_area_hectares": area.reflorested_area_hectares,
+        "planted_species": area.planted_species,
+        "initial_planted_area_hectares": area.initial_planted_area_hectares,
+        "initial_vegetation_cover": area.initial_vegetation_cover,
+        "localization_id": area.localization_id,
+        "company_id": area.company_id
+    })
     else:
         areas = Area.query.all()
         if not areas:
