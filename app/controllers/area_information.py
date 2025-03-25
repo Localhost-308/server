@@ -9,10 +9,12 @@ from app.database import db
 from app.models import Area, Localization
 from app.util.messages import Messages
 from app.initializer import app, mongo
+from app.util.utils import convert_dict_keys_to_camel_case
 
 area_information = Blueprint(
     "area_information", __name__, url_prefix=app.config["API_URL_PREFIX"] + "/area-information"
 )
+
 
 @area_information.route("/", methods=["GET"])
 @jwt_required()
@@ -563,4 +565,44 @@ def get_funding_by_uf_year():
         }
     }
 
+    return jsonify(result)
+
+
+@swag_from({
+    'tags': ['Area Information'],
+    'description': 'Saúde das árvores agrupadas por técnicas de plantio.',
+    'responses': {
+        200: {
+            'description': 'Dados de saúde das árvores por técnica de plantio.'
+        },
+        500: {
+            'description': 'Erro ao processar os dados.'
+        }
+    }
+})
+@area_information.route("/tree-health", methods=["GET"])
+def get_area_tree_health():
+    query = db.session.query(
+        Area.id,
+        Area.planting_techniques,
+        Area.number_of_trees_planted
+    ).all()
+
+    df_sql = pd.DataFrame(query, columns=["area_id", "planting_techniques", "trees_planted"])
+
+    mongo_data = mongo.db.api.aggregate([
+        {"$sort": {"measurement_date": -1}},
+        {"$group": {"_id": "$area_id", "tree_health_status": {"$first": "$tree_health_status"}}}
+    ])
+    df_mongo = pd.DataFrame(mongo_data)
+    df_mongo.rename(columns={"_id": "area_id"}, inplace=True)
+
+    df_merged = df_sql.merge(df_mongo, on="area_id", how="left")
+
+    df_result = df_merged.groupby(
+        ["planting_techniques", "tree_health_status"]
+    )["trees_planted"].sum().unstack().fillna(0).astype(int)
+
+    result = df_result.to_dict(orient="index")
+    result = convert_dict_keys_to_camel_case(result)
     return jsonify(result)
