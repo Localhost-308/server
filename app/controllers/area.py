@@ -19,7 +19,7 @@ areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Retrieve area information',
-    'description': 'Fetches information about all areas or a specific area by ID.',
+    'description': 'Fetches information about all areas, filters by city, or retrieves a specific area by ID.',
     'parameters': [
         {
             'name': 'id',
@@ -28,20 +28,34 @@ areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "
             'description': 'ID of the area to retrieve.',
             'required': False,
             'example': 1
+        },
+        {
+            'name': 'city',
+            'in': 'query',
+            'type': 'string',
+            'description': 'Filter areas by city name.',
+            'required': False,
+            'example': 'São Paulo'
         }
     ],
     'responses': {
         200: {
             'description': 'Successfully retrieved area information.',
             'schema': {
-                'type': 'object',
-                'properties': {
-                    'area_name': {'type': 'string', 'example': 'Área 1'},
-                    'total_area_hectares': {'type': 'number', 'example': 200.5},
-                    'reflorested_area_hectares': {'type': 'number', 'example': 120.0},
-                    'initial_planted_area_hectares': {'type': 'number', 'example': 50.0},
-                    'localization_id': {'type': 'integer', 'example': 5},
-                    'company_id': {'type': 'integer', 'example': 2}
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'number_of_trees_planted': {'type': 'integer', 'example': 5000},
+                        'planting_techniques': {'type': 'string', 'example': 'Direct seeding, seedling planting'},
+                        'reflorested_area_hectares': {'type': 'number', 'example': 120.0},
+                        'total_area_hectares': {'type': 'number', 'example': 200.5},
+                        'planted_species': {'type': 'string', 'example': 'Ipê, Jacarandá, Pau-Brasil'},
+                        'initial_vegetation_cover': {'type': 'string', 'example': 'Degraded pasture'},
+                        'initial_planted_area_hectares': {'type': 'number', 'example': 50.0},
+                        'city': {'type': 'string', 'example': 'São Paulo'},
+                        'uf': {'type': 'string', 'example': 'SP'}
+                    }
                 }
             }
         },
@@ -57,7 +71,7 @@ areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "
     }
 })
 def root(id=None):
-    cities_filter = request.args.get('cities')
+    city_filter = request.args.get('city')
     if id:
         area = Area.query.get(id)
         if not area:
@@ -80,14 +94,25 @@ def root(id=None):
     else:
         query = Area.query
 
-        if cities_filter:
-            query = query.join(Localization).filter(Localization.city == cities_filter)
+        if city_filter:
+            query = query.join(Localization).filter(Localization.city == city_filter)
         
         area = query.first()
         if not area:
             abort(404, description="Area not found!")
-        return AreaSchema().dump(area)
+        localization = Localization.query.get(area.localization_id)
 
+        return jsonify({
+        "number_of_trees_planted": area.number_of_trees_planted,
+        "planting_techniques": area.planting_techniques,
+        "reflorested_area_hectares": area.reflorested_area_hectares,
+        "total_area_hectares": area.total_area_hectares,
+        "planted_species": area.planted_species,
+        "initial_vegetation_cover": area.initial_vegetation_cover,
+        "initial_planted_area_hectares": area.initial_planted_area_hectares,
+        "city": localization.city,
+        "uf": localization.uf,
+    })
 
 @areas.route("/", methods=["POST"])
 @jwt_required()
