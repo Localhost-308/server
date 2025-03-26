@@ -15,7 +15,7 @@ area_information = Blueprint(
 )
 
 @area_information.route("/", methods=["GET"])
-@jwt_required()
+# @jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Get filtered area information',
@@ -70,17 +70,16 @@ def get_all_by():
         filters = {}
         params = request.args
         area_id = params.get('area_id', None)
-        start_date = params.get('start_date', '2000-01-01')
-        end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
+        start_date = datetime.strptime(params.get('start_date', '2000-01-01'), "%Y-%m-%d")
+        end_date = datetime.strptime(params.get('end_date', datetime.now().strftime('%Y-%m-%d')), "%Y-%m-%d")
 
         if area_id:
             filters['area_id'] = int(area_id)
 
-        if start_date or end_date:
-            filters['measurement_date'] = {
-                "$gte": start_date,
-                "$lt": end_date
-            }
+        filters['measurement_date'] = {
+            "$gte": start_date,
+            "$lt": end_date
+        }
 
         pipeline = [
             {"$match": filters},
@@ -104,7 +103,7 @@ def get_all_by():
 
 
 @area_information.route("/", methods=["POST"])
-@jwt_required()
+# @jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Create a new area information entry',
@@ -115,12 +114,19 @@ def get_all_by():
     }
 })
 def save_area_information():
-    data = request.json
-    if not data:
+    try:
+        data = request.json
+        if not data:
+            abort(400)
+        
+        data['measurement_date'] = datetime.strptime(data["measurement_date"], "%Y-%m-%d")
+        mongo.db.api.insert_one(data)
+        return jsonify({"msg": Messages.SUCCESS_SAVE_SUCCESSFULLY('Area Information')})
+    
+    except KeyError as error:
         abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
-
-    mongo.db.api.insert_one(data)
-    return jsonify({"msg": Messages.SUCCESS_SAVE_SUCCESSFULLY('Area Information')})
+    except Exception as error:
+        abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
 
 
 @area_information.route("/tree", methods=["GET"])
@@ -196,17 +202,16 @@ def get_tree_information():
         filters = {}
         params = request.args
         area_id = params.get('area_id', False)
-        start_date = params.get('start_date', '2000-01-01')
-        end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
+        start_date = datetime.strptime(params.get('start_date', '2000-01-01'), "%Y-%m-%d")
+        end_date = datetime.strptime(params.get('end_date', datetime.now().strftime('%Y-%m-%d')), "%Y-%m-%d")
 
         if area_id:
             filters['area_id'] = int(area_id)
 
-        if start_date or end_date:
-            filters['measurement_date'] = {
-                "$gte": start_date,
-                "$lt": end_date,
-            }
+        filters['measurement_date'] = {
+            "$gte": start_date,
+            "$lt": end_date
+        }
 
         pipeline = [
             {"$match": filters},
@@ -329,17 +334,16 @@ def get_soil_information():
         filters = {}
         params = request.args
         area_id = params.get('area_id', False)
-        start_date = params.get('start_date', '2000-01-01')
-        end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
+        start_date = datetime.strptime(params.get('start_date', '2000-01-01'), "%Y-%m-%d")
+        end_date = datetime.strptime(params.get('end_date', datetime.now().strftime('%Y-%m-%d')), "%Y-%m-%d")
 
         if area_id:
             filters['area_id'] = int(area_id)
 
-        if start_date or end_date:
-            filters['measurement_date'] = {
-                "$gte": datetime.strptime(start_date, "%Y-%m-%d"),
-                "$lt": datetime.strptime(end_date, "%Y-%m-%d"),
-            }
+        filters['measurement_date'] = {
+            "$gte": start_date,
+            "$lt": end_date
+        }
 
         pipeline = [
             {"$match": filters},
