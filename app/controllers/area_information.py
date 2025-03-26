@@ -204,8 +204,8 @@ def get_tree_information():
 
         if start_date or end_date:
             filters['measurement_date'] = {
-                "$gte": datetime.strptime(start_date, "%Y-%m-%d"),
-                "$lt": datetime.strptime(end_date, "%Y-%m-%d"),
+                "$gte": start_date,
+                "$lt": end_date,
             }
 
         pipeline = [

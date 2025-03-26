@@ -26,6 +26,12 @@ class AreaSchema(ma.SQLAlchemyAutoSchema):
         model = Area
         load_instance = True
 
+
+class AreaListSchema(ma.SQLAlchemyAutoSchema):
+    id = fields.Int()
+    area_name = fields.Str()
+
+
 class AreaExtendedSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Area

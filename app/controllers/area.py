@@ -8,7 +8,7 @@ from app.util.messages import Messages
 from app.initializer import app
 from app.database import db
 from app.models import Area, Localization
-from app.schemas import AreaSchema, AreaExtendedSchema
+from app.schemas import AreaSchema, AreaExtendedSchema, AreaListSchema
 
 areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "/areas")
 
@@ -27,6 +27,15 @@ def root(id=None):
         if not areas:
             abort(404, description="Area not found!")
         return AreaSchema(many=True).dump(areas)
+
+
+@areas.route("/list", methods=["GET"])
+@jwt_required()
+def get_area_list():
+    areas = Area.query.all()
+    if not areas:
+        abort(404, description="Area not found!")
+    return AreaListSchema(many=True).dump(areas)
 
 
 @areas.route("/", methods=["POST"])
