@@ -36,15 +36,10 @@ areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "
             'schema': {
                 'type': 'object',
                 'properties': {
-                    'title': {'type': 'string', 'example': 'Ficha Técnica da Área Selecionada'},
                     'area_name': {'type': 'string', 'example': 'Área 1'},
-                    'number_of_trees_planted': {'type': 'integer', 'example': 1000},
-                    'planting_techniques': {'type': 'string', 'example': 'Técnica X'},
                     'total_area_hectares': {'type': 'number', 'example': 200.5},
                     'reflorested_area_hectares': {'type': 'number', 'example': 120.0},
-                    'planted_species': {'type': 'string', 'example': 'Espécie Y'},
                     'initial_planted_area_hectares': {'type': 'number', 'example': 50.0},
-                    'initial_vegetation_cover': {'type': 'string', 'example': 'Cobertura Z'},
                     'localization_id': {'type': 'integer', 'example': 5},
                     'company_id': {'type': 'integer', 'example': 2}
                 }
@@ -62,23 +57,36 @@ areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "
     }
 })
 def root(id=None):
+    cities_filter = request.args.get('cities')
     if id:
         area = Area.query.get(id)
         if not area:
             abort(404, description="Area not found!")
+            
+        localization = Localization.query.get(area.localization_id)
+
         return jsonify({
-        "area_name": area.area_name,
-        "total_area_hectares": area.total_area_hectares,
+        "number_of_trees_planted": area.number_of_trees_planted,
+        "planting_techniques":area.planting_techniques,
         "reflorested_area_hectares": area.reflorested_area_hectares,
+        "total_area_hectares": area.total_area_hectares,
+        "planted_species": area.planted_species,
+        "initial_vegetation_cover": area.initial_vegetation_cover,
         "initial_planted_area_hectares": area.initial_planted_area_hectares,
-        "localization_id": area.localization_id,
-        "company_id": area.company_id
+        "city": localization.city,
+        "uf": localization.uf,
     })
+
     else:
-        areas = Area.query.all()
-        if not areas:
+        query = Area.query
+
+        if cities_filter:
+            query = query.join(Localization).filter(Localization.city == cities_filter)
+        
+        area = query.first()
+        if not area:
             abort(404, description="Area not found!")
-        return AreaSchema(many=True).dump(areas)
+        return AreaSchema().dump(area)
 
 
 @areas.route("/", methods=["POST"])
