@@ -1,8 +1,11 @@
+import pandas as pd
 from flask import Blueprint, abort, request, jsonify
 from flasgger import swag_from
 from flask_jwt_extended import jwt_required
 
 from datetime import datetime
+
+from sqlalchemy import func
 
 from unidecode import unidecode
 
@@ -10,13 +13,16 @@ from app.database import db
 from app.models import Area, Localization
 from app.util.messages import Messages
 from app.initializer import app, mongo
+from app.util.utils import convert_dict_keys_to_camel_case
+
 
 area_information = Blueprint(
     "area_information", __name__, url_prefix=app.config["API_URL_PREFIX"] + "/area-information"
 )
 
+
 @area_information.route("/", methods=["GET"])
-@jwt_required()
+# @jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Get filtered area information',
@@ -71,17 +77,16 @@ def get_all_by():
         filters = {}
         params = request.args
         area_id = params.get('area_id', None)
-        start_date = params.get('start_date', '2000-01-01')
-        end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
+        start_date = datetime.strptime(params.get('start_date', '2000-01-01'), "%Y-%m-%d")
+        end_date = datetime.strptime(params.get('end_date', datetime.now().strftime('%Y-%m-%d')), "%Y-%m-%d")
 
         if area_id:
             filters['area_id'] = int(area_id)
 
-        if start_date or end_date:
-            filters['measurement_date'] = {
-                "$gte": start_date,
-                "$lt": end_date
-            }
+        filters['measurement_date'] = {
+            "$gte": start_date,
+            "$lt": end_date
+        }
 
         pipeline = [
             {"$match": filters},
@@ -105,7 +110,7 @@ def get_all_by():
 
 
 @area_information.route("/", methods=["POST"])
-@jwt_required()
+# @jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Create a new area information entry',
@@ -116,12 +121,19 @@ def get_all_by():
     }
 })
 def save_area_information():
-    data = request.json
-    if not data:
-        abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
+    try:
+        data = request.json
+        if not data:
+            abort(400)
 
-    mongo.db.api.insert_one(data)
-    return jsonify({"msg": Messages.SUCCESS_SAVE_SUCCESSFULLY('Area Information')})
+        data['measurement_date'] = datetime.strptime(data["measurement_date"], "%Y-%m-%d")
+        mongo.db.api.insert_one(data)
+        return jsonify({"msg": Messages.SUCCESS_SAVE_SUCCESSFULLY('Area Information')})
+
+    except KeyError as error:
+        abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
+    except Exception as error:
+        abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
 
 
 @area_information.route("/tree", methods=["GET"])
@@ -197,17 +209,16 @@ def get_tree_information():
         filters = {}
         params = request.args
         area_id = params.get('area_id', False)
-        start_date = params.get('start_date', '2000-01-01')
-        end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
+        start_date = datetime.strptime(params.get('start_date', '2000-01-01'), "%Y-%m-%d")
+        end_date = datetime.strptime(params.get('end_date', datetime.now().strftime('%Y-%m-%d')), "%Y-%m-%d")
 
         if area_id:
             filters['area_id'] = int(area_id)
 
-        if start_date or end_date:
-            filters['measurement_date'] = {
-                "$gte": datetime.strptime(start_date, "%Y-%m-%d"),
-                "$lt": datetime.strptime(end_date, "%Y-%m-%d"),
-            }
+        filters['measurement_date'] = {
+            "$gte": start_date,
+            "$lt": end_date
+        }
 
         pipeline = [
             {"$match": filters},
@@ -330,17 +341,16 @@ def get_soil_information():
         filters = {}
         params = request.args
         area_id = params.get('area_id', False)
-        start_date = params.get('start_date', '2000-01-01')
-        end_date = params.get('end_date', str(datetime.now().strftime('%Y-%m-%d')))
+        start_date = datetime.strptime(params.get('start_date', '2000-01-01'), "%Y-%m-%d")
+        end_date = datetime.strptime(params.get('end_date', datetime.now().strftime('%Y-%m-%d')), "%Y-%m-%d")
 
         if area_id:
             filters['area_id'] = int(area_id)
 
-        if start_date or end_date:
-            filters['measurement_date'] = {
-                "$gte": datetime.strptime(start_date, "%Y-%m-%d"),
-                "$lt": datetime.strptime(end_date, "%Y-%m-%d"),
-            }
+        filters['measurement_date'] = {
+            "$gte": start_date,
+            "$lt": end_date
+        }
 
         pipeline = [
             {"$match": filters},
@@ -480,6 +490,216 @@ def get_total_planted_trees():
 
     except Exception as error:
         abort(500, description=str(error))
+
+
+@swag_from({
+    "summary": "Obter sumário de reflorestamento por UF/Tipo de solo/Tecnica de plantio",
+    "description": "Retorna a soma da área reflorestada agrupada por estado (UF), tipo de solo e técnica de plantio.",
+    "responses": {
+        200: {
+            "description": "Retorna um JSON com os totais de área reflorestada por estado.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "sp": {
+                            "total": 123412341234,
+                            "soil_type": {
+                                "total": 100,
+                                "pedregoso": 50,
+                                "argiloso": 50
+                            },
+                            "planting_techniques": {
+                                "total": 100,
+                                "foo": 30,
+                                "bar": 70
+                            }
+                        },
+                        "mg": {
+                            "total": 200,
+                            "soil_type": {
+                                "total": 200,
+                                "arenoso": 80,
+                                "humoso": 120
+                            },
+                            "planting_techniques": {
+                                "total": 200,
+                                "hidroponia": 90,
+                                "orgânico": 110
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "tags": ["Area Information"]
+})
+@area_information.route("/reforested-area-summary", methods=["GET"])
+def get_reforested_area_summary():
+    query = (
+        db.session.query(
+            Localization.uf,
+            Localization.soil_type,
+            Area.planting_techniques,
+            func.sum(Area.reflorested_area_hectares).label("total_area")
+        )
+        .join(Localization, Area.localization_id == Localization.id)
+        .group_by(Localization.uf, Localization.soil_type, Area.planting_techniques)
+        .all()
+    )
+
+    df = pd.DataFrame(query, columns=["uf", "soil_type", "planting_techniques", "total_area"])
+
+    if df.empty:
+        return jsonify({})
+
+    df["uf"] = df["uf"].str.lower()
+
+    total_by_uf = df.groupby("uf")["total_area"].sum().to_dict()
+
+    total_by_soil = df.groupby(["uf", "soil_type"])["total_area"].sum().unstack(fill_value=0)
+    total_by_soil["total"] = total_by_soil.sum(axis=1)
+    total_by_soil = total_by_soil.to_dict(orient="index")
+
+    total_by_technique = df.groupby(["uf", "planting_techniques"])["total_area"].sum().unstack(fill_value=0)
+    total_by_technique["total"] = total_by_technique.sum(axis=1)
+    total_by_technique = total_by_technique.to_dict(orient="index")
+
+    result = {
+        uf: {
+            "total": total_by_uf[uf],
+            "soil_type": total_by_soil.get(uf, {"total": 0}),
+            "planting_techniques": total_by_technique.get(uf, {"total": 0})
+        }
+        for uf in total_by_uf
+    }
+
+    return jsonify(result)
+
+
+@swag_from({
+    "tags": ["Area Information"],
+    "summary": "Obter total de custos de projetos por fonte de financiamento",
+    "description": "Retorna o total de custos de projetos (`total_project_cost_brl`) agrupados por fonte de financiamento (`funding_source`)."
+                   "Os resultados podem ser filtrados por estado (`uf`) e ano (`year`). Se nenhum parâmetro for passado, retorna os valores totais.",
+    "parameters": [
+        {
+            "name": "uf",
+            "in": "query",
+            "type": "string",
+            "required": False,
+            "description": "Sigla do estado (UF) para filtrar os resultados."
+        },
+        {
+            "name": "year",
+            "in": "query",
+            "type": "integer",
+            "required": False,
+            "description": "Ano para filtrar os dados."
+        }
+    ],
+    "responses": {
+        200: {
+            "description": "Resposta com os valores totais e percentuais por fonte de financiamento.",
+            "examples": {
+                "application/json": {
+                    "uf": "sp",
+                    "year": 2024,
+                    "total": 200000.0,
+                    "funding_sources": {
+                        "Governo": {"total": 100000.0, "percent": 50.0},
+                        "ONG": {"total": 60000.0, "percent": 30.0},
+                        "Privado": {"total": 40000.0, "percent": 20.0}
+                    }
+                }
+            }
+        },
+        404: {
+            "description": "Nenhum dado encontrado para os filtros fornecidos."
+        }
+    }
+})
+@area_information.route("/funding_by_uf_year", methods=["GET"])
+def get_funding_by_uf_year():
+    uf = request.args.get("uf", type=str)
+    year = request.args.get("year", type=int)
+
+    mongo_query = {}
+    if year:
+        mongo_query["measurement_date"] = {
+            "$gte": datetime(year, 1, 1),
+            "$lt": datetime(year + 1, 1, 1),
+        }
+    mongo_data = list(mongo.db.api.find(mongo_query, {"area_id": 1, "funding_source": 1, "total_project_cost_brl": 1, "_id": 0}))
+
+    if not mongo_data:
+        return jsonify({"error": "Nenhum dado encontrado para os filtros fornecidos."}), 404
+
+    df = pd.DataFrame(mongo_data)
+
+    if uf:
+        areas = db.session.query(Area.id, Localization.uf).join(Localization, Area.localization_id == Localization.id).all()
+        area_uf_map = {area.id: area.uf.lower() for area in areas}
+        df["uf"] = df["area_id"].map(area_uf_map)
+
+        df = df[df["uf"] == uf.lower()]
+
+    funding_totals = df.groupby("funding_source")["total_project_cost_brl"].sum()
+
+    total = funding_totals.sum()
+    funding_percentages = (funding_totals / total * 100).round(2)
+
+    result = {
+        "uf": uf.lower() if uf else "all",
+        "year": year if year else "all",
+        "total": total,
+        "funding_sources": {
+            source.lower().replace(" ", "_"): {"total": float(value), "percent": float(funding_percentages[source])}
+            for source, value in funding_totals.items()
+        }
+    }
+
+    return jsonify(result)
+
+
+@swag_from({
+    'tags': ['Area Information'],
+    'description': 'Saúde das árvores agrupadas por técnicas de plantio.',
+    'responses': {
+        200: {
+            'description': 'Dados de saúde das árvores por técnica de plantio.'
+        },
+        500: {
+            'description': 'Erro ao processar os dados.'
+        }
+    }
+})
+@area_information.route("/tree-health", methods=["GET"])
+def get_area_tree_health():
+    query = db.session.query(
+        Area.id,
+        Area.planting_techniques,
+        Area.number_of_trees_planted
+    ).all()
+
+    df_sql = pd.DataFrame(query, columns=["area_id", "planting_techniques", "trees_planted"])
+
+    mongo_data = mongo.db.api.aggregate([
+        {"$sort": {"measurement_date": -1}},
+        {"$group": {"_id": "$area_id", "tree_health_status": {"$first": "$tree_health_status"}}}
+    ])
+    df_mongo = pd.DataFrame(mongo_data)
+    df_mongo.rename(columns={"_id": "area_id"}, inplace=True)
+
+    df_merged = df_sql.merge(df_mongo, on="area_id", how="left")
+
+    df_result = df_merged.groupby(
+        ["planting_techniques", "tree_health_status"]
+    )["trees_planted"].sum().unstack().fillna(0).astype(int)
+
+    result = df_result.to_dict(orient="index")
+    result = convert_dict_keys_to_camel_case(result)
+    return jsonify(result)
 
 
 @area_information.route("/average-tree-survival", methods=["GET"])
