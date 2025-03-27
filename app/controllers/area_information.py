@@ -20,7 +20,7 @@ area_information = Blueprint(
 
 
 @area_information.route("/", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Get filtered area information',
@@ -108,7 +108,7 @@ def get_all_by():
 
 
 @area_information.route("/", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Create a new area information entry',
@@ -533,6 +533,7 @@ def get_total_planted_trees():
     "tags": ["Area Information"]
 })
 @area_information.route("/reforested-area-summary", methods=["GET"])
+@jwt_required()
 def get_reforested_area_summary():
     query = (
         db.session.query(
@@ -618,6 +619,7 @@ def get_reforested_area_summary():
     }
 })
 @area_information.route("/funding_by_uf_year", methods=["GET"])
+@jwt_required()
 def get_funding_by_uf_year():
     uf = request.args.get("uf", type=str)
     year = request.args.get("year", type=int)
@@ -673,6 +675,7 @@ def get_funding_by_uf_year():
     }
 })
 @area_information.route("/tree-health", methods=["GET"])
+@jwt_required()
 def get_area_tree_health():
     query = db.session.query(
         Area.id,
@@ -698,3 +701,66 @@ def get_area_tree_health():
     result = df_result.to_dict(orient="index")
     result = convert_dict_keys_to_camel_case(result)
     return jsonify(result)
+
+
+@area_information.route("/tree/status", methods=["GET"])
+@jwt_required()
+def get_tree_status():
+    try:
+        filters = {}
+        params = request.args
+        area_id = params.get('area_id', default=None, type=int)
+        start_date = datetime.strptime(params.get('start_date', default='2000-01-01', type=str), "%Y-%m-%d")
+        end_date = datetime.strptime(params.get('end_date', default=datetime.now().strftime('%Y-%m-%d'), type=str), "%Y-%m-%d")
+        uf = params.get('uf', default=None, type=str)
+
+        if area_id:
+            filters['area_id'] = int(area_id)
+
+        filters['measurement_date'] = {
+            "$gte": start_date,
+            "$lt": end_date
+        }
+
+        sql_query = db.session.query(
+            Area.id, Area.area_name
+        ).join(Localization).filter(
+            (Area.id == area_id) if area_id else True,
+            (Localization.uf == uf.upper()) if uf else True,
+        ).all()
+
+        pipeline = [
+            {"$match": filters},
+            {
+                "$group": {
+                    "_id": {
+                        "measurement_date": {"$substr": ["$measurement_date", 0, 7]},
+                    },
+                    "area_id": {"$first": "$area_id"},
+                    "tree_health_status": {"$first": "$tree_health_status"}
+                }
+            },
+            {"$sort": {"_id.measurement_date": 1, "_id.fertilization": 1}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "measurement_date": "$_id.measurement_date",
+                    "area_id": "$area_id",
+                    "tree_health_status": "$tree_health_status"
+                }
+            }
+        ]
+
+        df_pg = pd.DataFrame(sql_query)
+        df_mg = pd.DataFrame(list(mongo.db.api.aggregate(pipeline)))
+        df_merged = pd.merge(df_pg, df_mg, left_on='id', right_on='area_id', how='inner')
+        df_merged.drop(columns=['area_id', 'id'], inplace=True)
+
+        return jsonify(df_merged.to_dict(orient='records'))
+
+    except KeyError as error:
+        print(error)
+        abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
+    except Exception as error:
+        print(error)
+        abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))

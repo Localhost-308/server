@@ -15,7 +15,7 @@ areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "
 
 @areas.route("/", methods=["GET"])
 @areas.route("/<int:id>", methods=["GET"])
-#@jwt_required()
+@jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Retrieve area information',
