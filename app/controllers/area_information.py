@@ -704,6 +704,76 @@ def get_area_tree_health():
 
 
 @area_information.route("/tree/status", methods=["GET"])
+@swag_from({
+    'tags': ['Area Information'],
+    'summary': 'Retrieve tree health status by area and date range',
+    'description': 'Fetches aggregated tree health status for a given area, date range, and optional state filter.',
+    'parameters': [
+        {
+            'name': 'area_id',
+            'in': 'query',
+            'type': 'integer',
+            'description': 'ID of the area to filter the data by.',
+            'required': False
+        },
+        {
+            'name': 'start_date',
+            'in': 'query',
+            'type': 'string',
+            'format': 'date',
+            'description': 'Start date of the date range to filter the data (YYYY-MM-DD). Default is 2000-01-01.',
+            'required': False
+        },
+        {
+            'name': 'end_date',
+            'in': 'query',
+            'type': 'string',
+            'format': 'date',
+            'description': 'End date of the date range to filter the data (YYYY-MM-DD). Default is the current date.',
+            'required': False
+        },
+        {
+            'name': 'uf',
+            'in': 'query',
+            'type': 'string',
+            'description': 'Federative Unit (state) filter.',
+            'required': False
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Tree health status successfully retrieved.',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'measurement_date': {'type': 'string', 'example': '2025-03'},
+                        'tree_health_status': {'type': 'string', 'example': 'Healthy'}
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Invalid input data. Ensure the area ID and dates are correct.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('Area Information')}
+                }
+            }
+        },
+        500: {
+            'description': 'Internal server error occurred.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.UNKNOWN_ERROR('Area Information')}
+                }
+            }
+        }
+    }
+})
 @jwt_required()
 def get_tree_status():
     try:
@@ -764,3 +834,4 @@ def get_tree_status():
     except Exception as error:
         print(error)
         abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
+
