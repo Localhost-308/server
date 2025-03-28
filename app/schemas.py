@@ -38,4 +38,7 @@ class AreaExtendedSchema(ma.SQLAlchemyAutoSchema):
         load_instance = True
     uf = fields.Str()
     city = fields.Str()
+    quantity = fields.Str()
+    company_name = fields.Str()
+    created_on_month = fields.Str()
     total_reflorested_and_planted = fields.Float()

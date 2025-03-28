@@ -22,7 +22,7 @@ area_information = Blueprint(
 
 
 @area_information.route("/", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Get filtered area information',
@@ -110,7 +110,7 @@ def get_all_by():
 
 
 @area_information.route("/", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 @swag_from({
     'tags': ['Area Information'],
     'summary': 'Create a new area information entry',
@@ -125,11 +125,11 @@ def save_area_information():
         data = request.json
         if not data:
             abort(400)
-
+        
         data['measurement_date'] = datetime.strptime(data["measurement_date"], "%Y-%m-%d")
         mongo.db.api.insert_one(data)
         return jsonify({"msg": Messages.SUCCESS_SAVE_SUCCESSFULLY('Area Information')})
-
+    
     except KeyError as error:
         abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
     except Exception as error:
@@ -535,6 +535,7 @@ def get_total_planted_trees():
     "tags": ["Area Information"]
 })
 @area_information.route("/reforested-area-summary", methods=["GET"])
+@jwt_required()
 def get_reforested_area_summary():
     query = (
         db.session.query(
@@ -620,6 +621,7 @@ def get_reforested_area_summary():
     }
 })
 @area_information.route("/funding_by_uf_year", methods=["GET"])
+@jwt_required()
 def get_funding_by_uf_year():
     uf = request.args.get("uf", type=str)
     year = request.args.get("year", type=int)
@@ -675,6 +677,7 @@ def get_funding_by_uf_year():
     }
 })
 @area_information.route("/tree-health", methods=["GET"])
+@jwt_required()
 def get_area_tree_health():
     query = db.session.query(
         Area.id,
@@ -700,6 +703,274 @@ def get_area_tree_health():
     result = df_result.to_dict(orient="index")
     result = convert_dict_keys_to_camel_case(result)
     return jsonify(result)
+
+
+@area_information.route("/tree/status", methods=["GET"])
+@swag_from({
+    'tags': ['Area Information'],
+    'summary': 'Retrieve tree health status by area and date range',
+    'description': 'Fetches aggregated tree health status for a given area, date range, and optional state filter.',
+    'parameters': [
+        {
+            'name': 'area_id',
+            'in': 'query',
+            'type': 'integer',
+            'description': 'ID of the area to filter the data by.',
+            'required': False
+        },
+        {
+            'name': 'start_date',
+            'in': 'query',
+            'type': 'string',
+            'format': 'date',
+            'description': 'Start date of the date range to filter the data (YYYY-MM-DD). Default is 2000-01-01.',
+            'required': False
+        },
+        {
+            'name': 'end_date',
+            'in': 'query',
+            'type': 'string',
+            'format': 'date',
+            'description': 'End date of the date range to filter the data (YYYY-MM-DD). Default is the current date.',
+            'required': False
+        },
+        {
+            'name': 'uf',
+            'in': 'query',
+            'type': 'string',
+            'description': 'Federative Unit (state) filter.',
+            'required': False
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Tree health status successfully retrieved.',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'measurement_date': {'type': 'string', 'example': '2025-03'},
+                        'tree_health_status': {'type': 'string', 'example': 'Healthy'}
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Invalid input data. Ensure the area ID and dates are correct.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('Area Information')}
+                }
+            }
+        },
+        500: {
+            'description': 'Internal server error occurred.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.UNKNOWN_ERROR('Area Information')}
+                }
+            }
+        }
+    }
+})
+@jwt_required()
+def get_tree_status():
+    try:
+        filters = {}
+        params = request.args
+        area_id = params.get('area_id', default=None, type=int)
+        start_date = datetime.strptime(params.get('start_date', default='2000-01-01', type=str), "%Y-%m-%d")
+        end_date = datetime.strptime(params.get('end_date', default=datetime.now().strftime('%Y-%m-%d'), type=str), "%Y-%m-%d")
+        uf = params.get('uf', default=None, type=str)
+
+        if area_id:
+            filters['area_id'] = int(area_id)
+
+        filters['measurement_date'] = {
+            "$gte": start_date,
+            "$lt": end_date
+        }
+
+        sql_query = db.session.query(
+            Area.id, Area.area_name
+        ).join(Localization).filter(
+            (Area.id == area_id) if area_id else True,
+            (Localization.uf == uf.upper()) if uf else True,
+        ).all()
+
+        pipeline = [
+            {"$match": filters},
+            {
+                "$group": {
+                    "_id": {
+                        "measurement_date": {"$substr": ["$measurement_date", 0, 7]},
+                    },
+                    "area_id": {"$first": "$area_id"},
+                    "tree_health_status": {"$first": "$tree_health_status"}
+                }
+            },
+            {"$sort": {"_id.measurement_date": 1, "_id.fertilization": 1}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "measurement_date": "$_id.measurement_date",
+                    "area_id": "$area_id",
+                    "tree_health_status": "$tree_health_status"
+                }
+            }
+        ]
+
+        df_pg = pd.DataFrame(sql_query)
+        df_mg = pd.DataFrame(list(mongo.db.api.aggregate(pipeline)))
+        df_merged = pd.merge(df_pg, df_mg, left_on='id', right_on='area_id', how='inner')
+        df_merged.drop(columns=['area_id', 'id'], inplace=True)
+
+        return jsonify(df_merged.to_dict(orient='records'))
+
+    except KeyError as error:
+        print(error)
+        abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
+    except Exception as error:
+        print(error)
+        abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
+
+
+@area_information.route("/environmental-threats", methods=["GET"])
+@swag_from({
+    'tags': ['Area Information'],
+    'summary': 'Retrieve environmental threats by area and date range',
+    'description': 'Fetches aggregated environmental threats for a given area, date range, and optional state filter.',
+    'parameters': [
+        {
+            'name': 'area_id',
+            'in': 'query',
+            'type': 'integer',
+            'description': 'ID of the area to filter the data by.',
+            'required': False
+        },
+        {
+            'name': 'start_date',
+            'in': 'query',
+            'type': 'string',
+            'format': 'date',
+            'description': 'Start date of the date range to filter the data (YYYY-MM-DD). Default is 2000-01-01.',
+            'required': False
+        },
+        {
+            'name': 'end_date',
+            'in': 'query',
+            'type': 'string',
+            'format': 'date',
+            'description': 'End date of the date range to filter the data (YYYY-MM-DD). Default is the current date.',
+            'required': False
+        },
+        {
+            'name': 'uf',
+            'in': 'query',
+            'type': 'string',
+            'description': 'Federative Unit (state) filter.',
+            'required': False
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Environmental threats successfully retrieved.',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'area_name': {'type': 'string', 'example': 'Área A'},
+                        'measurement_date': {'type': 'string', 'example': '2025-03'},
+                        'environmental_threats': {'type': 'string', 'example': 'Animais'}
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Invalid input data. Ensure the area ID and dates are correct.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA('Area Information')}
+                }
+            }
+        },
+        500: {
+            'description': 'Internal server error occurred.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.UNKNOWN_ERROR('Area Information')}
+                }
+            }
+        }
+    }
+})
+@jwt_required()
+def environmental_threats():
+    try:
+        filters = {}
+        params = request.args
+        area_id = params.get('area_id', default=None, type=int)
+        start_date = datetime.strptime(params.get('start_date', default='2000-01-01', type=str), "%Y-%m-%d")
+        end_date = datetime.strptime(params.get('end_date', default=datetime.now().strftime('%Y-%m-%d'), type=str), "%Y-%m-%d")
+        uf = params.get('uf', default=None, type=str)
+
+        if area_id:
+            filters['area_id'] = int(area_id)
+
+        filters['measurement_date'] = {
+            "$gte": start_date,
+            "$lt": end_date
+        }
+
+        sql_query = db.session.query(
+            Area.id, Area.area_name
+        ).join(Localization).filter(
+            (Area.id == area_id) if area_id else True,
+            (Localization.uf == uf.upper()) if uf else True,
+        ).all()
+
+        pipeline = [
+            {"$match": filters},
+            {
+                "$group": {
+                    "_id": {
+                        "measurement_date": {"$substr": ["$measurement_date", 0, 7]},
+                        "area_id": "$area_id",
+                    },
+                    "environmental_threats": {"$first": "$environmental_threats"}
+                }
+            },
+            {"$sort": {"_id.measurement_date": 1, "_id.fertilization": 1}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "measurement_date": "$_id.measurement_date",
+                    "area_id": "$_id.area_id",
+                    "environmental_threats": "$environmental_threats"
+                }
+            }
+        ]
+
+        df_pg = pd.DataFrame(sql_query)
+        df_mg = pd.DataFrame(list(mongo.db.api.aggregate(pipeline)))
+        df_merged = pd.merge(df_pg, df_mg, left_on='id', right_on='area_id', how='inner')
+        df_merged.drop(columns=['area_id', 'id'], inplace=True)
+
+        return jsonify(df_merged.to_dict(orient='records'))
+
+    except KeyError as error:
+        print(error)
+        abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
+    except Exception as error:
+        print(error)
+        abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
+
 
 
 @area_information.route("/average-tree-survival", methods=["GET"])
