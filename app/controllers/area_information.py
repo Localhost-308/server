@@ -7,6 +7,8 @@ from datetime import datetime
 
 from sqlalchemy import func
 
+from unidecode import unidecode
+
 from app.database import db
 from app.models import Area, Localization
 from app.util.messages import Messages
@@ -969,3 +971,55 @@ def environmental_threats():
         print(error)
         abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
 
+
+
+@area_information.route("/average-tree-survival", methods=["GET"])
+@swag_from({
+    "tags": ["Area Information"],
+    "summary": "Obter a média da taxa de sobrevivência de árvores por tipo de solo",
+    "description": "Retorna a média da taxa de sobrevivência de árvores agrupada por tipo de solo, "
+                   "com base nos dados armazenados no MongoDB.",
+    "responses": {
+        200: {
+            "description": "Média da taxa de sobrevivência por tipo de solo",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "arenoso": 52.3,
+                        "pedregoso": 16.0,
+                        "argiloso": 40.5
+                    }
+                }
+            }
+        },
+        400: {
+            "description": "Erro na requisição"
+        }
+    }
+})
+def get_average_tree_survival():
+    areas = (
+        db.session.query(Area.area_name, Area.id, Localization.soil_type)
+        .join(Localization, Area.localization_id == Localization.id)
+        .all()
+    )
+
+    area_soil_map = {area.id: area.soil_type for area in areas} # {area_id: soil_type, ...}
+    mongo_data = mongo.db.api.find({}, {"area_id": 1, "tree_survival_rate": 1}) # {area_id: survival_rate, ...}
+    survival_rates = {} # {'arenoso': [52, 45, 32], 'pedregoso': [12, 20], ...}
+
+    for doc in mongo_data:
+        area_id = doc.get("area_id")
+        survival_rate = doc.get("tree_survival_rate")
+        soil_type = unidecode(area_soil_map[area_id]).lower()
+
+        rates_list = survival_rates.get(soil_type, [])
+        rates_list.append(survival_rate)
+        survival_rates[soil_type] = rates_list
+
+    averages = {
+        soil: sum(rates) / len(rates)
+        for soil, rates in survival_rates.items()
+    }
+
+    return jsonify(averages)
