@@ -513,7 +513,6 @@ def planting_techniques():
         return areas_result
     
     except Exception as error:
-        print('ERROR: ',error)
         abort(400, description=Messages.ERROR_INVALID_DATA(f'area_id={area_id} or uf={uf} or city={city} or company_name={company_name}'))
     except Exception as error:
         abort(500, description=Messages.UNKNOWN_ERROR('Area'))
