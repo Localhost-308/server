@@ -403,9 +403,117 @@ def planted_species():
         return areas_result
     
     except Exception as error:
-        print('ERROR: ',error)
         abort(400, description=Messages.ERROR_INVALID_DATA(f'area_id={area_id} or uf={uf} or city={city} or '\
                                                            f'company_name={company_name} or start_date={start_date} or end_date={end_date}'))
+    except Exception as error:
+        abort(500, description=Messages.UNKNOWN_ERROR('Area'))
+
+
+@areas.route("/planting-techniques", methods=["GET"])
+@swag_from({
+    'tags': ['Area Information'],
+    'summary': 'Retrieve planting techniques for specified areas',
+    'description': 'Fetches data related to the planting techniques and their count for given areas, filtered by optional parameters like area_id, uf, city, and company name.',
+    'parameters': [
+        {
+            'name': 'area_id',
+            'in': 'query',
+            'type': 'integer',
+            'description': 'Area ID to filter the data by.',
+            'required': False,
+            'example': 1
+        },
+        {
+            'name': 'uf',
+            'in': 'query',
+            'type': 'string',
+            'description': 'Federal unit (UF) to filter the areas.',
+            'required': False,
+            'example': 'SP'
+        },
+        {
+            'name': 'city',
+            'in': 'query',
+            'type': 'string',
+            'description': 'City name to filter the areas.',
+            'required': False,
+            'example': 'São Paulo'
+        },
+        {
+            'name': 'company_name',
+            'in': 'query',
+            'type': 'string',
+            'description': 'Company name to filter the areas.',
+            'required': False,
+            'example': 'EcoTech'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Planting techniques information successfully retrieved.',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'planting_techniques': {'type': 'string', 'example': 'Direct seeding'},
+                        'quantity': {'type': 'integer', 'example': 5}
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Invalid input data. Ensure area IDs, UF, city, or company name are correct.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.ERROR_INVALID_DATA(f'area_id=? or uf=? or city=? or company_name=?')}
+                }
+            }
+        },
+        500: {
+            'description': 'Internal server error occurred.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string', 'example': Messages.UNKNOWN_ERROR('Area')}
+                }
+            }
+        }
+    }
+})
+@jwt_required()
+def planting_techniques():
+    try:
+        params = request.args
+        area_id = params.get('area_id', default=None, type=int)
+        uf = params.get('uf', default=None, type=str)
+        city = params.get('city', default=None, type=str)
+        company_name = params.get('company_name', default=None, type=str)
+        
+        areas = db.session.query(
+            Area.planting_techniques,
+            func.count(Area.planting_techniques).label('quantity')
+        ).join(Localization).join(Company).filter(
+            (Area.id == area_id) if area_id else True,
+            (func.upper(Localization.uf) == uf.upper()) if uf else True,
+            (func.upper(Localization.city) == city.upper()) if city else True,
+            (func.upper(Company.name) == company_name.upper()) if company_name else True
+        ).group_by(
+            Area.planting_techniques
+        ).all()
+
+        if not areas:
+            abort(400)
+        
+        areas_result = AreaExtendedSchema(many=True).dump(areas)
+        for area in areas_result:
+            area['quantity'] = int(area['quantity'])
+        
+        return areas_result
+    
+    except Exception as error:
+        abort(400, description=Messages.ERROR_INVALID_DATA(f'area_id={area_id} or uf={uf} or city={city} or company_name={company_name}'))
     except Exception as error:
         abort(500, description=Messages.UNKNOWN_ERROR('Area'))
 
