@@ -40,10 +40,10 @@ files = Blueprint("files", __name__, url_prefix=app.config["API_URL_PREFIX"] + "
     }
 })
 def import_csv_sql():
-    if "file" not in request.files:
+    if not request.files.get('file.csv'):
         return jsonify({"error": "No file part"}), 400
 
-    file = request.files["file"]
+    file = request.files.get('file.csv')
     if file.filename == "":
         return jsonify({"error": "No selected file"}), 400
 
@@ -53,7 +53,6 @@ def import_csv_sql():
 
     try:
         df = pd.read_csv(file, decimal=",")
-
         required_columns = [
             "area_name", "number_of_trees_planted", "planting_techniques", "total_area_hectares",
             "reflorested_area_hectares", "planted_species", "initial_planted_area_hectares",
@@ -140,12 +139,11 @@ def import_csv_sql():
         }
     }
 })
-
 def import_csv_nosql():
-    if "file" not in request.files:
+    if not request.files.get('file.csv'):
         return jsonify({"error": "No file part"}), 400
 
-    file = request.files["file"]
+    file = request.files.get('file.csv')
     if file.filename == "":
         return jsonify({"error": "No selected file"}), 400
 
