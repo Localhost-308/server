@@ -335,11 +335,8 @@ def reflorested_area():
                 'items': {
                     'type': 'object',
                     'properties': {
-                        'uf': {'type': 'string', 'example': 'SP'},
-                        'city': {'type': 'string', 'example': 'São Paulo'},
-                        'company_name': {'type': 'string', 'example': 'EcoTech'},
-                        'area_name': {'type': 'string', 'example': 'Área de Conservação 1'},
-                        'planted_species': {'type': 'array', 'items': {'type': 'string'}, 'example': ['Espécie 1', 'Espécie 2']},
+                        'planted_species': {'type': 'string', 'example': 'Espécie 1'},
+                        'number_of_trees_planted': {'type': 'number', 'example': 1000},
                         'created_on_month': {'type': 'string', 'example': '2023-05'}
                     }
                 }
@@ -377,11 +374,8 @@ def planted_species():
         end_date = datetime.strptime(params.get('end_date', default=datetime.now().strftime('%Y-%m-%d'), type=str), "%Y-%m-%d")
         
         areas = db.session.query(
-            Localization.uf,
-            Localization.city,
-            (Company.name).label('company_name'),
-            Area.area_name,
             Area.planted_species,
+            func.sum(Area.number_of_trees_planted).label('number_of_trees_planted'),
             func.to_char(Area.created_on, 'YYYY-MM').label('created_on_month')
         ).join(Localization).join(Company).filter(
             (Area.id == area_id) if area_id else True,
@@ -390,17 +384,15 @@ def planted_species():
             (func.upper(Company.name) == company_name.upper()) if company_name else True,
             cast(Area.created_on, Date) >= start_date,
             cast(Area.created_on, Date) <= end_date
+        ).group_by(
+            Area.planted_species,
+            func.to_char(Area.created_on, 'YYYY-MM')
         ).all()
 
         if not areas:
             abort(400)
         
-        areas_result = AreaExtendedSchema(many=True).dump(areas)
-
-        for area in areas_result:
-            area['planted_species'] = str(area['planted_species']).split(', ')
-        
-        return areas_result
+        return AreaExtendedSchema(many=True).dump(areas)
     
     except Exception as error:
         abort(400, description=Messages.ERROR_INVALID_DATA(f'area_id={area_id} or uf={uf} or city={city} or '\
