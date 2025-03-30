@@ -1011,11 +1011,11 @@ def get_average_tree_survival():
     for doc in mongo_data:
         area_id = doc.get("area_id")
         survival_rate = doc.get("tree_survival_rate")
-        soil_type = unidecode(area_soil_map[area_id]).lower()
-
-        rates_list = survival_rates.get(soil_type, [])
-        rates_list.append(survival_rate)
-        survival_rates[soil_type] = rates_list
+        if area_id:
+            soil_type = unidecode(area_soil_map[area_id]).lower()
+            rates_list = survival_rates.get(soil_type, [])
+            survival_rates[soil_type] = rates_list
+            rates_list.append(survival_rate)
 
     averages = {
         soil: sum(rates) / len(rates)
