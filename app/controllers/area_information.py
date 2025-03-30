@@ -385,7 +385,7 @@ def get_soil_information():
 
 
 @area_information.route("/total-planted-trees", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 @swag_from({
     "tags": ["Area Information"],
     "summary": "Total de árvores plantadas ",
