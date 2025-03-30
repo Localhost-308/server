@@ -385,7 +385,7 @@ def get_soil_information():
 
 
 @area_information.route("/total-planted-trees", methods=["GET"])
-@jwt_required()
+# @jwt_required()
 @swag_from({
     "tags": ["Area Information"],
     "summary": "Total de árvores plantadas ",
@@ -486,10 +486,18 @@ def get_total_planted_trees():
 
         total_trees = sum(area_ids[area_id] for area_id in valid_area_ids)
 
-        return jsonify({"total_planted_trees": total_trees})
+        return {"total_planted_trees": total_trees}
 
     except Exception as error:
         abort(500, description=str(error))
+
+
+@area_information.route("/species-trees/list", methods=["GET"])
+@jwt_required()
+def get_species_trees():
+    sql_query = db.session.query(Area.planted_species).all()
+    list_serialized = [area[0] for area in sql_query]
+    return list(set(list_serialized))
 
 
 @swag_from({
@@ -970,7 +978,6 @@ def environmental_threats():
     except Exception as error:
         print(error)
         abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
-
 
 
 @area_information.route("/average-tree-survival", methods=["GET"])
