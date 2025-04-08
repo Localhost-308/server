@@ -16,7 +16,7 @@ users = Blueprint(
 
 @users.route('/', methods=['GET', 'POST'])
 @users.route('/<int:id>', methods=['GET'])
-# @jwt_required()
+@jwt_required()
 def root(id=None):
     user_query = User.query
     if request.method == 'GET':
@@ -54,7 +54,7 @@ def login():
         abort(404, description='User not found!')
     if not check_password_hash(str(user.password), password):
         abort(401, description='Wrong Password!')
-    access_token = create_access_token(identity=user.id)
+    access_token = create_access_token(identity=user.id, additional_claims={'company_id': user.company_id})
     response = {
         "access_token":access_token,
         "user":UserSchema(exclude=['password']).dump(User.query.filter_by(id=user.id).one())

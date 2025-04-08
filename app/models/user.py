@@ -6,3 +6,5 @@ class User(Base):
     last_name = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(80), nullable=False, unique=True)
     password = db.Column(db.String(162), nullable=False)
+
+    company_id = db.Column(db.Integer, db.ForeignKey("companies.id"), nullable=False)
