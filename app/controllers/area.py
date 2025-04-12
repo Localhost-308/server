@@ -509,3 +509,72 @@ def planting_techniques():
     except Exception as error:
         abort(500, description=Messages.UNKNOWN_ERROR('Area'))
 
+
+@areas.route("/search", methods=["GET"])
+@swag_from({
+    'tags': ['Areas'],
+    'parameters': [
+        {
+            'name': 'name',
+            'in': 'query',
+            'type': 'string',
+            'required': True,
+            'description': 'Termo de busca (nome da área, empresa ou cidade)'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Lista de áreas encontradas',
+        },
+        400: {
+            'description': 'Missing search query parameter.'
+        },
+        404: {
+            'description': 'No areas found matching the search criteria.'
+        }
+    }
+})
+@jwt_required()
+def search_areas():
+    search_term = request.args.get("name", "")
+
+    if not search_term:
+        abort(400, description="Missing search query parameter.")
+
+    areas = (
+        db.session.query(
+            Area.id,
+            Area.area_name,
+            Area.total_area_hectares,
+            Area.reflorested_area_hectares,
+            Area.number_of_trees_planted,
+            Localization.uf,
+            Localization.city,
+            Company.name.label("company_name"),
+        )
+        .join(Area.company)
+        .join(Area.localization)
+        .filter(
+            db.or_(
+                Area.area_name.ilike(f"%{search_term}%"),
+                Company.name.ilike(f"%{search_term}%"),
+                Localization.city.ilike(f"%{search_term}%")
+            )
+        )
+        .limit(30)
+        .all()
+    )
+
+    if not areas:
+        abort(404, description="No areas found matching the search criteria.")
+
+    areas_df = pd.DataFrame(areas)
+
+    collection = mongo.db.api
+    mongo_data = collection.find({"area_id": {"$in": areas_df['id'].tolist()}})
+    mongo_df = pd.DataFrame(mongo_data)
+
+    result_df = pd.merge(areas_df, mongo_df, how='left', left_on='id', right_on='area_id')
+    result_df['area_name'] = result_df['area_name_x']
+    result_df.drop(columns=['area_name_x', 'area_name_y'], inplace=True)
+    return AreaGeoSchema(many=True).dump(result_df.to_dict(orient='records'))
