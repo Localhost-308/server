@@ -200,3 +200,89 @@ def import_csv_nosql():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
+@files.route("/cities_coordinates", methods=["POST"])
+@swag_from({
+    'tags': ['Import CSV'],
+    'summary': 'Cities Coordinates',
+    'parameters': [
+        {
+            'name': 'file',
+            'in': 'formData',
+            'type': 'file',
+            'required': True,
+            'description': 'CSV file containing data to import'
+        }
+    ],
+    'responses': {
+        '200': {
+            'description': 'Data successfully imported',
+        },
+        '400': {
+            'description': 'Bad request, file not found or invalid format',
+        },
+        '500': {
+            'description': 'Server error while processing the file',
+        }
+    }
+})
+def import_cities_coordinates():
+    file = request.files.get('file')
+    collection = mongo.db.api_cities_coordinates
+    return _import_mongo_data(collection, file)
+
+
+
+@files.route("/inmet", methods=["POST"])
+@swag_from({
+    'tags': ['Import CSV'],
+    'summary': 'INMET data',
+    'parameters': [
+        {
+            'name': 'file',
+            'in': 'formData',
+            'type': 'file',
+            'required': True,
+            'description': 'CSV file containing data to import'
+        }
+    ],
+    'responses': {
+        '200': {
+            'description': 'Data successfully imported',
+        },
+        '400': {
+            'description': 'Bad request, file not found or invalid format',
+        },
+        '500': {
+            'description': 'Server error while processing the file',
+        }
+    }
+})
+def import_inmet_data():
+    file = request.files.get('file')
+    collection = mongo.db.api_inmet
+    return _import_mongo_data(collection, file)
+
+
+def _import_mongo_data(collection, file):
+    if not file:
+        return jsonify({"error": "No file part"}), 400
+
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
+
+    filename = secure_filename(file.filename)
+    if not filename.endswith(".csv"):
+        return jsonify({"error": "Invalid file format, only .csv allowed"}), 400
+
+    try:
+        df = pd.read_csv(file, decimal=",")
+
+        collection.insert_many(df.to_dict(orient="records"))
+
+        return jsonify({"message": "Data imported successfully"}), 201
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 50
