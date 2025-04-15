@@ -1,3 +1,4 @@
+import pandas as pd
 from flask import Blueprint, abort, request, jsonify
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
@@ -6,10 +7,10 @@ from sqlalchemy import func, cast, Date
 from datetime import datetime
 
 from app.util.messages import Messages
-from app.initializer import app
+from app.initializer import app, mongo
 from app.database import db
 from app.models import Area, Localization, Company
-from app.schemas import AreaSchema, AreaExtendedSchema, AreaListSchema
+from app.schemas import AreaSchema, AreaExtendedSchema, AreaListSchema, AreaGeoSchema
 
 areas = Blueprint("areas", __name__, url_prefix=app.config["API_URL_PREFIX"] + "/areas")
 
@@ -577,4 +578,6 @@ def search_areas():
     result_df = pd.merge(areas_df, mongo_df, how='left', left_on='id', right_on='area_id')
     result_df['area_name'] = result_df['area_name_x']
     result_df.drop(columns=['area_name_x', 'area_name_y'], inplace=True)
-    return AreaGeoSchema(many=True).dump(result_df.to_dict(orient='records'))
+    result_df[result_df.select_dtypes(include=['float']).columns] = result_df.select_dtypes(include=['float']).fillna(0)
+    data = AreaGeoSchema(many=True).dump(result_df.to_dict(orient='records'))
+    return jsonify(data)
