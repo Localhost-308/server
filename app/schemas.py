@@ -59,5 +59,4 @@ class AreaGeoSchema(ma.SQLAlchemyAutoSchema):
     coordinates = fields.Method("get_coordinates")
 
     def get_coordinates(self, area):
-        print(area.keys())
         return get_city_coordinates(area['city'])
