@@ -50,20 +50,6 @@ def root(id=None):
             return UsuarioResponseDTO().dump(new_user), 201
         except Exception as e:
             abort(500, description=str(e).split('\n')[0])
-        # data = request.json
-        # new_user = User()
-        # for field in data:
-        #     setattr(new_user, field, data[field])
-        # if new_user.email and User.query.filter_by(email=new_user.email).one_or_none():
-        #     abort(409, description='E-mail already taken!')
-        # new_user.password = generate_password_hash(new_user.password)
-        # try:
-        #     db.session.add(new_user)
-        #     db.session.commit()
-        #     return UserSchema(exclude=['password']).dump(new_user)
-        # except Exception as e:
-        #     abort(500, description=str(e).split('\n')[0])
-
 
 @users.route('/login', methods=['POST'])
 def login():
