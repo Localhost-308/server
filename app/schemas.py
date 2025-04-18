@@ -47,32 +47,32 @@ class UsuarioRequestDTO(Schema):
     first_name = fields.String(
         required=True,
         validate=validate.Length(min=1),
-        error_messages={"required": "Nome é obrigatório"}
+        error_messages={"required": "First name is required"}
     )
     last_name = fields.String(
         required=True,
         validate=validate.Length(min=1),
-        error_messages={"required": "Sobrenome é obrigatório"}
+        error_messages={"required": "Last name is required"}
     )
     email = fields.Email(
         required=True,
-        error_messages={"required": "Email é obrigatório", "invalid": "Email inválido"}
+        error_messages={"required": "Email is required", "invalid": "Email inválido"}
     )
     password = fields.String(
         required=True,
         validate=validate.Length(min=6),
-        error_messages={"required": "Senha é obrigatória"}
+        error_messages={"required": "Password is required"}
     )
     cargo = fields.String(
         required=True,
         validate=validate.OneOf([e.name for e in CargoEnum]),
-        error_messages={"required": "Cargo é obrigatório"}
+        error_messages={"required": "Job title is required"}
     )
 
     @validates("email")
     def validar_email_unico(self, value):
         if User.query.filter_by(email=value).first():
-            raise ValidationError("E-mail já está em uso.")
+            raise ValidationError("Email is already in use")
 
 
 class UsuarioResponseDTO(Schema):
