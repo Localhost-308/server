@@ -1,4 +1,10 @@
+import enum
 from app.models.base import Base, db
+
+class CargoEnum(enum.Enum):
+    ADMIN = 'ADMIN'
+    DONO_AREA = 'DONO_AREA'
+    GESTOR_AREA = 'GESTOR_AREA'
 
 class User(Base):
     __tablename__ = 'users'
@@ -6,3 +12,4 @@ class User(Base):
     last_name = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(80), nullable=False, unique=True)
     password = db.Column(db.String(162), nullable=False)
+    cargo = db.Column(db.Enum(CargoEnum), nullable=False)
