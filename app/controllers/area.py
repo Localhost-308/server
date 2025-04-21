@@ -574,10 +574,14 @@ def search_areas():
     collection = mongo.db.api
     mongo_data = collection.find({"area_id": {"$in": areas_df['id'].tolist()}})
     mongo_df = pd.DataFrame(mongo_data)
-
     result_df = pd.merge(areas_df, mongo_df, how='left', left_on='id', right_on='area_id')
     result_df['area_name'] = result_df['area_name_x']
     result_df.drop(columns=['area_name_x', 'area_name_y'], inplace=True)
     result_df[result_df.select_dtypes(include=['float']).columns] = result_df.select_dtypes(include=['float']).fillna(0)
-    data = AreaGeoSchema(many=True).dump(result_df.to_dict(orient='records'))
+    result_df['tree_health_status'] = result_df['tree_health_status'].fillna('-')
+    result_df['stage_indicator'] = result_df['stage_indicator'].fillna('-')
+    try:
+        data = AreaGeoSchema(many=True).dump(result_df.to_dict(orient='records'))
+    except TypeError:
+        abort(404, description="No Coordinates found.")
     return jsonify(data)
