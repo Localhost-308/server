@@ -1,6 +1,8 @@
 from app.initializer import ma
 from marshmallow import fields, Schema, validate, validates, ValidationError
 from app.models import User, Area, Company, Localization
+from app.util.utils import get_city_coordinates
+
 from app.models.user import CargoEnum
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
@@ -81,3 +83,20 @@ class UsuarioResponseDTO(Schema):
     last_name = fields.String()
     email = fields.Email()
     cargo = fields.String()
+
+
+class AreaGeoSchema(ma.SQLAlchemyAutoSchema):
+    area_name = fields.Str()
+    company_name = fields.Str()
+    uf = fields.Str()
+    city = fields.Str()
+    total_area_hectares = fields.Float()
+    reflorested_area_hectares = fields.Float()
+    number_of_trees_planted = fields.Float()
+    tree_health_status = fields.Str()
+    stage_indicator = fields.Str()
+    tree_survival_rate = fields.Float()
+    coordinates = fields.Method("get_coordinates")
+
+    def get_coordinates(self, area):
+        return get_city_coordinates(area['city'])
