@@ -209,7 +209,7 @@ def import_csv_nosql():
     'summary': 'Cities Coordinates',
     'parameters': [
         {
-            'name': 'file',
+            'name': 'file.csv',
             'in': 'formData',
             'type': 'file',
             'required': True,
@@ -229,7 +229,7 @@ def import_csv_nosql():
     }
 })
 def import_cities_coordinates():
-    file = request.files.get('file')
+    file = request.files.get('file.csv')
     collection = mongo.db.api_cities_coordinates
     return _import_mongo_data(collection, file)
 
@@ -241,7 +241,7 @@ def import_cities_coordinates():
     'summary': 'INMET data',
     'parameters': [
         {
-            'name': 'file',
+            'name': 'file.csv',
             'in': 'formData',
             'type': 'file',
             'required': True,
@@ -261,7 +261,7 @@ def import_cities_coordinates():
     }
 })
 def import_inmet_data():
-    file = request.files.get('file')
+    file = request.files.get('file.csv')
     collection = mongo.db.api_inmet
     return _import_mongo_data(collection, file)
 
