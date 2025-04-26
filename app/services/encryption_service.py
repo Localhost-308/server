@@ -1,4 +1,5 @@
 # app/services/encryption_service.py
+import base64
 
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
@@ -30,7 +31,7 @@ class EncryptionService:
         return private_pem, public_pem
 
     @staticmethod
-    def encrypt(public_key_pem, plaintext: str) -> bytes:
+    def encrypt(public_key_pem, plaintext: str) -> str:
         """
         Criptografa uma string usando a chave pública.
         """
@@ -43,13 +44,17 @@ class EncryptionService:
                 label=None
             )
         )
-        return ciphertext
+        compressed_base64 = base64.b64encode(ciphertext)
+        return compressed_base64.decode('utf-8')
+
 
     @staticmethod
-    def decrypt(private_key_pem, ciphertext: bytes) -> str:
+    def decrypt(private_key_pem, ciphertext: str) -> str:
         """
         Descriptografa uma string usando a chave privada.
         """
+        ciphertext = base64.b64decode(ciphertext)
+
         private_key = serialization.load_pem_private_key(private_key_pem, password=None)
         plaintext = private_key.decrypt(
             ciphertext,
