@@ -71,13 +71,7 @@ class UsuarioRequestDTO(Schema):
         error_messages={"required": "Job title is required"}
     )
 
-    @validates("email")
-    def validar_email_unico(self, value):
-        if User.query.filter_by(email=value).first():
-            raise ValidationError("Email is already in use")
-
-
-class UsuarioResponseDTO(Schema):
+class UsuarioResponseDTO(ma.SQLAlchemyAutoSchema):
     id = fields.Int()
     first_name = fields.String()
     last_name = fields.String()
