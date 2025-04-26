@@ -19,11 +19,17 @@ users = Blueprint(
 def root(id=None):
     user_query = User.query
     if request.method == 'GET':
-        result = UserSchema(exclude=['password']).dump(user_query.get(id)) \
-            if id else [UserSchema(exclude=['password']).dump(u) for u in user_query.all()]
-        if not result:
+        user_list = [User.query.filter_by(id=id).first()] if id else User.query.all()
+        user_obj_list = []
+        for u in user_list:
+            user_obj = UserSchema(exclude=['password', 'cargo']).dump(u)
+            user_obj['cargo'] = u.cargo.value
+            user_obj_list.append(user_obj)
+        
+        if not user_obj_list:
             abort(404, description='User not found!')
-        return result
+    
+        return user_obj_list
     
     elif request.method == 'POST':
         try:
@@ -70,8 +76,10 @@ def login():
         abort(401, description='Wrong Password!')
     
     access_token = create_access_token(identity=user.id)
+    user_obj = UserSchema(exclude=['password', 'cargo']).dump(user)
+    user_obj['cargo'] = user.cargo.value
     response = {
         "access_token":access_token,
-        "user":UserSchema(exclude=['password']).dump(User.query.filter_by(id=user.id).one())
+        "user":user_obj
     }
     return response, 200
