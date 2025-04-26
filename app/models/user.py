@@ -8,8 +8,8 @@ class CargoEnum(enum.Enum):
 
 class User(Base):
     __tablename__ = 'users'
-    first_name = db.Column(db.String(80), nullable=False)
-    last_name = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(80), nullable=False, unique=True)
-    password = db.Column(db.String(162), nullable=False)
+    first_name = db.Column(db.String(350), nullable=False)
+    last_name = db.Column(db.String(350), nullable=False)
+    email = db.Column(db.String(350), nullable=False, unique=True)
+    password = db.Column(db.String(500), nullable=False)
     cargo = db.Column(db.Enum(CargoEnum), nullable=False)
