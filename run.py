@@ -1,5 +1,4 @@
-from app.controllers import area, company, localization, user, area_information, \
-    import_file, reforestation_stage, environment_threats, portability, machine_learn
+from app.controllers import area, company, localization, user, area_information, import_file, reforestation_stage, environment_threats, portability, machine_learn
 from app.initializer import app
 from app.database.sqlite import init_sqlite_db
 
