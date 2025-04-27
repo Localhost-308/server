@@ -57,7 +57,7 @@ class UsuarioRequestDTO(Schema):
         error_messages={"required": "Last name is required"}
     )
     email = fields.Email(
-        required=True,
+        required=False,
         error_messages={"required": "Email is required", "invalid": "Email inválido"}
     )
     password = fields.String(
