@@ -98,6 +98,7 @@ def get_users():
 
     return user_obj_list, 200
 
+
 @users.route('/<int:id>', methods=['DELETE'])
 @swag_from({
     'summary': 'Delete a user',
@@ -238,7 +239,7 @@ def login():
                 sqlite_session.close()
                 abort(500, description='Failed to decrypt user name.')
 
-            access_token = create_access_token(identity=user.id)
+            access_token = create_access_token(identity=user.id, additional_claims={'company_id': user.company_id})
 
             user_obj = {
                 "id": user.id,
