@@ -69,21 +69,27 @@ def get_users():
         )
         result = cursor.fetchone()
 
-        if result:
-            private_key_pem = result[0]
+        if not result:
+            continue
 
+        private_key_pem = result[0]
+
+        try:
             decrypted_first_name = EncryptionService.decrypt(private_key_pem, u.first_name)
             decrypted_last_name = EncryptionService.decrypt(private_key_pem, u.last_name)
             decrypted_email = EncryptionService.decrypt(private_key_pem, u.email)
+        except Exception as e:
+            print(f"[WARN] Falha ao descriptografar usuário ID {u.id}: {e}")
+            continue  
 
-            user_obj = {
-                "id": u.id,
-                "first_name": decrypted_first_name,
-                "last_name": decrypted_last_name,
-                "email": decrypted_email,
-                "cargo": u.cargo.value
-            }
-            user_obj_list.append(user_obj)
+        user_obj = {
+            "id": u.id,
+            "first_name": decrypted_first_name,
+            "last_name": decrypted_last_name,
+            "email": decrypted_email,
+            "cargo": u.cargo.value
+        }
+        user_obj_list.append(user_obj)
 
     sqlite_session.close()
 
@@ -196,24 +202,58 @@ def login():
     if not request.is_json:
         abort(400, description='Missing JSON in request!')
 
-    email = request.json.get('email', None)
-    password = request.json.get('password', None)
-    
+    email = request.json.get('email')
+    password = request.json.get('password')
+
     if not email or not password:
         abort(400, description='Missing Email and/or Password in request!')
-    
-    user = User.query.filter_by(email=email).one_or_none()
-    if not user:
-        abort(404, description='User not found!')
 
-    if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
-        abort(401, description='Wrong Password!')
+    sqlite_session = get_sqlite_session()
+    users = User.query.all()
 
-    access_token = create_access_token(identity=user.id, additional_claims={'company_id': user.company_id})
-    user_obj = UserSchema(exclude=['password', 'cargo']).dump(user)
-    user_obj['cargo'] = user.cargo.value
-    response = {
-        "access_token": access_token,
-        "user": user_obj
-    }
-    return response, 200
+    for user in users:
+        cursor = sqlite_session.execute(
+            "SELECT private_key FROM user_keys WHERE user_id = ?", (user.id,)
+        )
+        result = cursor.fetchone()
+
+        if not result:
+            continue
+
+        private_key_pem = result[0]
+
+        try:
+            decrypted_email = EncryptionService.decrypt(private_key_pem, user.email)
+        except Exception:
+            continue  
+
+        if decrypted_email == email:
+            if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+                sqlite_session.close()
+                abort(401, description='Wrong Password!')
+
+            try:
+                decrypted_first_name = EncryptionService.decrypt(private_key_pem, user.first_name)
+                decrypted_last_name = EncryptionService.decrypt(private_key_pem, user.last_name)
+            except Exception:
+                sqlite_session.close()
+                abort(500, description='Failed to decrypt user name.')
+
+            access_token = create_access_token(identity=user.id, additional_claims={'company_id': user.company_id})
+
+            user_obj = {
+                "id": user.id,
+                "first_name": decrypted_first_name,
+                "last_name": decrypted_last_name,
+                "email": decrypted_email,
+                "cargo": user.cargo.value
+            }
+
+            sqlite_session.close()
+            return {
+                "access_token": access_token,
+                "user": user_obj
+            }, 200
+
+    sqlite_session.close()
+    abort(404, description='User not found!')
