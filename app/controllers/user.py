@@ -27,7 +27,7 @@ def root(id=None):
     
     elif request.method == 'POST':
         try:
-            data = UsuarioRequestDTO().load(request.json)
+            data = request.json
         except Exception as e:
             abort(400, description=str(e))
 
