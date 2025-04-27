@@ -209,7 +209,7 @@ def login():
     if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
         abort(401, description='Wrong Password!')
 
-    access_token = create_access_token(identity=user.id)
+    access_token = create_access_token(identity=user.id, additional_claims={'company_id': user.company_id})
     user_obj = UserSchema(exclude=['password', 'cargo']).dump(user)
     user_obj['cargo'] = user.cargo.value
     response = {
