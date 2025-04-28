@@ -15,3 +15,6 @@ class Area(Base):
         db.Integer, db.ForeignKey("localizations.id"), nullable=False
     )
     company_id = db.Column(db.Integer, db.ForeignKey("companies.id"), nullable=False)
+
+    localization = db.relationship("Localization", backref="areas")
+    company = db.relationship("Company", backref="areas")
