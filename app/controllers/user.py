@@ -174,7 +174,7 @@ def delete_user(id):
 })
 def create_user():
     try:
-        data = UsuarioRequestDTO().load(request.json)
+        data = request.json
     except Exception as e:
         abort(400, description=str(e))
 
@@ -182,14 +182,14 @@ def create_user():
         abort(409, description='E-mail already taken!')
 
     hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt())
-
     try:
         new_user = UserService.create_user(
             first_name=data['first_name'],
             last_name=data['last_name'],
             email=data['email'],
             password=hashed_password.decode('utf-8'),
-            cargo=data['cargo']
+            cargo=data['cargo'],
+            company_id=1
         )
         return UsuarioResponseDTO().dump(new_user), 201
     except Exception as e:

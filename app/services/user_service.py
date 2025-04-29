@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class UserService:
     @staticmethod
-    def create_user(first_name, last_name, email, password, cargo):
+    def create_user(first_name, last_name, email, password, cargo, company_id):
         """
         Cria um novo usuário, criptografa dados sensíveis e salva chave no SQLite.
         """
@@ -27,7 +27,8 @@ class UserService:
             last_name=encrypted_last_name,
             email=encrypted_email,
             password=password,  # A senha já deve estar com bcrypt no controller
-            cargo=cargo
+            cargo=cargo,
+            company_id=company_id
         )
 
         try:
