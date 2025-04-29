@@ -29,7 +29,7 @@ def root(id=None):
 
 
 @companies.route("/", methods=["POST"])
-@jwt_required()
+# @jwt_required()
 def post():
     data = request.json
     new_company = Company()
