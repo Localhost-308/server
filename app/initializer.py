@@ -9,6 +9,8 @@ from flask import Flask, request, Response
 from app.models import User
 from app.config import Config
 from app.database import db
+from app.util.chat import Chat
+from app.util.report_messages import chat_template
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -19,6 +21,8 @@ jwt = JWTManager(app)
 swagger = Swagger(app)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 mongo = PyMongo(app, uri=app.config["MONGO_URI"])
+chat = Chat()
+chat.send_message(chat_template)
 
 @app.shell_context_processor
 def make_shell_context():
