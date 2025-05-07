@@ -72,7 +72,7 @@ Este gráfico apresenta a evolução mensal de três indicadores importantes: o 
 
 ![Análise de Tendência por Mês](<<path_image_1>>)
 
-Este gráfico de área ilustra a evolução da quantidade de árvores vivas e perdidas ao longo do tempo. As áreas coloridas mostram como esses dois grupos se comportaram mês a mês, permitindo visualizar de forma clara o balanço entre o ganho e a perda de árvores no período analisado.
+Este gráfico radar apresenta a evolução dos principais indicadores ambientais da área entre o primeiro e o último mês do período analisado. Ele compara visualmente fatores como fertilidade do solo, crescimento médio das árvores, CO₂ evitado, taxa de sobrevivência e qualidade da água. A sobreposição das áreas permite identificar com clareza os avanços ou estagnações em cada aspecto, oferecendo uma visão abrangente do desempenho ambiental ao longo do tempo.
 
 ![Evolução das Árvores Vivas e Perdidas](<<path_image_2>>)
 """

@@ -48,7 +48,7 @@ def get_report():
             "stage_indicator",
             "measurement_date",
             "living_trees_to_date",
-            # "tree_survival_rate"
+            "tree_survival_rate"
         ]
 
         sql_query = db.session.query(
