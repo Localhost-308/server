@@ -21,6 +21,7 @@ def get_user_info():
     try:
         claims = get_jwt()
         company_id = claims.get('company_id')
+        columns = request.get_json()['columns']
 
         sql_query = db.session.query(
             (Area.id).label('areaid'), Area.area_name, Localization.uf, Localization.city
@@ -44,6 +45,7 @@ def get_user_info():
         df_mg = pd.DataFrame(list(mongo.db.api.aggregate(pipeline)))
         df_merged = pd.merge(df_pg, df_mg, left_on='areaid', right_on='area_id', how='inner')
         df_merged.drop(columns=['area_id', 'areaid'], inplace=True)
+        df_merged = df_merged[columns]
         
         return df_merged.to_dict(orient='records')
 
