@@ -126,13 +126,13 @@ def save_area_information():
         if not data:
             abort(400)
         
-        if type(data) == list:
-            for a in data:
-                a['measurement_date'] = datetime.strptime(a["measurement_date"], "%Y-%m-%d")
-                mongo.db.api.insert_one(a)
-        else:
-            data['measurement_date'] = datetime.strptime(data["measurement_date"], "%Y-%m-%d")
-            mongo.db.api.insert_one(data)
+        if type(data) != list:
+            data = [data]
+
+        for a in data:
+            a['measurement_date'] = datetime.strptime(a["measurement_date"], "%Y-%m-%d")
+            mongo.db.api.insert_one(a)
+
         return jsonify({"msg": Messages.SUCCESS_SAVE_SUCCESSFULLY('Area Information')})
     
     except KeyError as error:
