@@ -50,8 +50,6 @@ def get_user_info():
         return df_merged.to_dict(orient='records')
 
     except KeyError as error:
-        print(error)
         abort(400, description=Messages.ERROR_INVALID_DATA('Area Information'))
     except Exception as error:
-        print(error)
         abort(500, description=Messages.UNKNOWN_ERROR('Area Information'))
