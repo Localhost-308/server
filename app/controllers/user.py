@@ -1,5 +1,5 @@
 from flasgger import swag_from
-from flask import Blueprint, abort, request
+from flask import Blueprint, abort, request, jsonify
 from flask_jwt_extended import jwt_required, create_access_token
 import bcrypt
 
@@ -7,6 +7,7 @@ from app.initializer import app
 from app.database import db
 from app.models import User
 from app.schemas import UserSchema, UsuarioRequestDTO, UsuarioResponseDTO
+from app.services.email_service import send_email
 from app.services.user_service import UserService
 from app.services.encryption_service import EncryptionService
 from app.database.sqlite import get_sqlite_session
@@ -56,42 +57,7 @@ users = Blueprint(
 def get_users():
     id = request.args.get('id', type=int)
     user_list = [User.query.filter_by(id=id).first()] if id else User.query.all()
-    user_obj_list = []
-
-    sqlite_session = get_sqlite_session()
-
-    for u in user_list:
-        if u is None:
-            continue
-
-        cursor = sqlite_session.execute(
-            "SELECT private_key FROM user_keys WHERE user_id = ?", (u.id,)
-        )
-        result = cursor.fetchone()
-
-        if not result:
-            continue
-
-        private_key_pem = result[0]
-
-        try:
-            decrypted_first_name = EncryptionService.decrypt(private_key_pem, u.first_name)
-            decrypted_last_name = EncryptionService.decrypt(private_key_pem, u.last_name)
-            decrypted_email = EncryptionService.decrypt(private_key_pem, u.email)
-        except Exception as e:
-            print(f"[WARN] Falha ao descriptografar usuário ID {u.id}: {e}")
-            continue  
-
-        user_obj = {
-            "id": u.id,
-            "first_name": decrypted_first_name,
-            "last_name": decrypted_last_name,
-            "email": decrypted_email,
-            "cargo": u.cargo.value
-        }
-        user_obj_list.append(user_obj)
-
-    sqlite_session.close()
+    user_obj_list = decrypt_user_list(user_list)
 
     if not user_obj_list:
         abort(404, description='User not found!')
@@ -257,3 +223,109 @@ def login():
 
     sqlite_session.close()
     abort(404, description='User not found!')
+
+
+@users.route('/notify-lgpd-incident', methods=['POST'])
+@swag_from({
+    'tags': ['Notificações'],
+    'description': 'Envia notificação de incidente LGPD para todos os usuários.',
+    'parameters': [
+        {
+            'name': 'mensagem',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'mensagem': {
+                        'type': 'string',
+                        'example': 'Esta é uma notificação de teste do incidente LGPD.'
+                    }
+                },
+                'required': ['mensagem']
+            }
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'E-mails enviados com sucesso.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'status': {
+                        'type': 'string',
+                        'example': 'E-mails enviados com sucesso.'
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Erro de validação.',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'erro': {
+                        'type': 'string',
+                        'example': 'Campo "mensagem" é obrigatório no corpo da requisição.'
+                    }
+                }
+            }
+        }
+    }
+})
+def notify_lgpd_incident():
+    data = request.get_json()
+    if not data or 'message' not in data:
+        return jsonify({'erro': 'Campo "mensagem" é obrigatório no corpo da requisição.'}), 400
+
+    message = data['message']
+    subject = "Esta menssagem é apenas um teste - DESCONSIDERE"
+
+    encrypted_user_list = User.query.all()
+    users = decrypt_user_list(encrypted_user_list)
+    email_list = [user["email"] for user in users]
+
+    for email in email_list:
+        send_email(recipient=email, subject=subject, body=message)
+
+    return jsonify({'status': 'E-mails enviados com sucesso.'}), 200
+
+
+def decrypt_user_list(user_list):
+    user_obj_list = []
+
+    sqlite_session = get_sqlite_session()
+
+    for u in user_list:
+        if u is None:
+            continue
+
+        cursor = sqlite_session.execute(
+            "SELECT private_key FROM user_keys WHERE user_id = ?", (u.id,)
+        )
+        result = cursor.fetchone()
+
+        if not result:
+            continue
+
+        private_key_pem = result[0]
+
+        try:
+            decrypted_first_name = EncryptionService.decrypt(private_key_pem, u.first_name)
+            decrypted_last_name = EncryptionService.decrypt(private_key_pem, u.last_name)
+            decrypted_email = EncryptionService.decrypt(private_key_pem, u.email)
+        except Exception as e:
+            print(f"[WARN] Falha ao descriptografar usuário ID {u.id}: {e}")
+            continue
+
+        user_obj = {
+            "id": u.id,
+            "first_name": decrypted_first_name,
+            "last_name": decrypted_last_name,
+            "email": decrypted_email,
+            "cargo": u.cargo.value
+        }
+        user_obj_list.append(user_obj)
+
+    sqlite_session.close()
+    return user_obj_list
