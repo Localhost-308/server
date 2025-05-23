@@ -1,6 +1,6 @@
 from app.initializer import ma
 from marshmallow import fields, Schema, validate, validates, ValidationError
-from app.models import User, Area, Company, Localization
+from app.models import User, Area, Company, Localization, TermsAndCondition, TermsAcceptance
 from app.util.utils import get_city_coordinates
 
 from app.models.user import CargoEnum
@@ -94,3 +94,15 @@ class AreaGeoSchema(ma.SQLAlchemyAutoSchema):
 
     def get_coordinates(self, area):
         return get_city_coordinates(area['city'])
+    
+
+class TermsAndConditionSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = TermsAndCondition
+        load_instance = True
+
+
+class TermsAcceptanceSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = TermsAcceptance
+        load_instance = True

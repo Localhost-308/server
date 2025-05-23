@@ -13,5 +13,5 @@ class User(Base):
     email = db.Column(db.String(350), nullable=False, unique=True)
     password = db.Column(db.String(500), nullable=False)
     cargo = db.Column(db.Enum(CargoEnum), nullable=False)
-
+    # last_terms_and_conditions_accepted = db.Column(db.Boolean, default=False)
     company_id = db.Column(db.Integer, db.ForeignKey("companies.id"), nullable=False)

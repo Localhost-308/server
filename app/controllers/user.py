@@ -1,12 +1,13 @@
 from flasgger import swag_from
 from flask import Blueprint, abort, request, jsonify
-from flask_jwt_extended import jwt_required, create_access_token
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
+from datetime import datetime
 import bcrypt
 
 from app.initializer import app
 from app.database import db
-from app.models import User
-from app.schemas import UserSchema, UsuarioRequestDTO, UsuarioResponseDTO
+from app.models import User, TermsAndCondition, TermsAcceptance
+from app.schemas import UsuarioResponseDTO, TermsAndConditionSchema
 from app.services.email_service import send_email
 from app.services.user_service import UserService
 from app.services.encryption_service import EncryptionService
@@ -329,3 +330,69 @@ def decrypt_user_list(user_list):
 
     sqlite_session.close()
     return user_obj_list
+
+
+@users.route('/terms-and-conditions', methods=['POST', 'GET'])
+@users.route('/terms-and-conditions/<int:id>', methods=['PUT'])
+@jwt_required()
+def terms_and_conditions(id=None):
+    if request.method == 'GET':
+        return TermsAndConditionSchema(many=True).dump(TermsAndCondition.query.all())
+    data = request.json
+    if not data:
+        abort(400, description='Not data in request!')
+    last_terms = TermsAndCondition.query.order_by(TermsAndCondition.created_on.desc()).first()
+    last_version = last_terms.version.split('-')[1] if last_terms else 0
+    today = datetime.now()
+    version = f'{today.year}{today.month}{today.day}-{int(last_version)+1}'
+    if request.method == 'POST':
+        try:
+            new_terms_and_condition = TermsAndCondition()
+            new_terms_and_condition.version = version
+            new_terms_and_condition.text = request.json['text']
+            if 'mandatory' in request.json:
+                new_terms_and_condition.mandatory = request.json['mandatory']
+            db.session.add(new_terms_and_condition)
+            db.session.commit()
+            return TermsAndConditionSchema().dump(new_terms_and_condition)
+        except Exception as e:
+            db.session.rollback()
+            abort(500, description=f'Error: {e}')
+    if request.method == 'PUT':
+        if not id:
+            abort(400, description='ID not informed!')
+        try:
+            update_terms_and_condition = TermsAndCondition.query.get(id)
+            if not update_terms_and_condition:
+                abort(404, description='Terms not found!')
+            if update_terms_and_condition.text == request.json['text']:
+                abort(400, description='Terms not change!')
+            update_terms_and_condition.version = version
+            update_terms_and_condition.text = request.json['text']
+            if 'mandatory' in request.json:
+                update_terms_and_condition.mandatory = request.json['mandatory']
+            db.session.merge(update_terms_and_condition)
+            db.session.commit()
+            return TermsAndConditionSchema().dump(update_terms_and_condition)
+        except Exception as e:
+            db.session.rollback()
+            abort(500, description=f'Error: {e}')
+    
+
+@users.route('/terms-and-conditions/accept', methods=['POST'])
+@jwt_required()
+def terms_accept():
+    current_terms = TermsAndCondition.query\
+        .filter(TermsAndCondition.mandatory==True)\
+        .order_by(TermsAndCondition.created_on.desc()).first()
+    if not current_terms:
+        abort(404, description='Terms not found!')
+    terms_acceptance = TermsAcceptance(
+        Terms=get_jwt_identity(),
+        termos_id=current_terms.id,
+        ip=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+    db.session.add(terms_acceptance)
+    db.session.commit()
+    return {'msg': 'ok'}
