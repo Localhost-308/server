@@ -16,13 +16,11 @@ from app.util.report_messages import graph_analysis
 
 report = Blueprint("report", __name__, url_prefix=app.config["API_URL_PREFIX"] + "/report")
 
-@report.route("/", methods=["GET"])
+@report.route("/<int:area_id>", methods=["GET"])
 @jwt_required()
-def get_report():
+def get_report(area_id):
     try:
         pdf = MarkdownToPDF()
-        claims = get_jwt()
-        company_id = claims.get('company_id')
         columns = [
             "area_name",
             # "uf",
@@ -55,8 +53,8 @@ def get_report():
             (Area.id).label('areaid'), Area.area_name, Area.planting_techniques, Area.planted_species, 
             Area.total_area_hectares, Area.initial_planted_area_hectares, Area.initial_vegetation_cover,
             Localization.uf, Localization.city
-        ).join(Company).join(Localization).filter(
-            Company.id == 1
+        ).join(Localization).filter(
+            Area.id == area_id
         ).all()
 
         df_pg = pd.DataFrame(sql_query)

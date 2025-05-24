@@ -545,7 +545,7 @@ def search_areas():
     areas = (
         db.session.query(
             Area.id,
-            Area.area_name,
+            (Area.area_name).label('area_name_x'),
             Area.total_area_hectares,
             Area.reflorested_area_hectares,
             Area.number_of_trees_planted,
@@ -575,8 +575,7 @@ def search_areas():
     mongo_data = collection.find({"area_id": {"$in": areas_df['id'].tolist()}})
     mongo_df = pd.DataFrame(mongo_data)
     result_df = pd.merge(areas_df, mongo_df, how='left', left_on='id', right_on='area_id')
-    result_df['area_name'] = result_df['area_name_x']
-    result_df.drop(columns=['area_name_x', 'area_name_y'], inplace=True)
+    result_df.drop(columns=['area_name_x'], inplace=True)
     result_df[result_df.select_dtypes(include=['float']).columns] = result_df.select_dtypes(include=['float']).fillna(0)
     result_df['tree_health_status'] = result_df['tree_health_status'].fillna('-')
     result_df['stage_indicator'] = result_df['stage_indicator'].fillna('-')

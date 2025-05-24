@@ -80,6 +80,7 @@ class UsuarioResponseDTO(ma.SQLAlchemyAutoSchema):
 
 
 class AreaGeoSchema(ma.SQLAlchemyAutoSchema):
+    area_id = fields.Int()
     area_name = fields.Str()
     company_name = fields.Str()
     uf = fields.Str()
