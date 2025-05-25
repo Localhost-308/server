@@ -39,6 +39,20 @@ Substitua `ID-DO-CONTAINER` pelo ID real do container:
 docker exec -it ID-DO-CONTAINER psql -U postgres -d database
 ```
 
+## Notificador de Incidentes lgpd
+O notificador de incidentes é uma aplicação desktop que possibilita notificar usuários mesmo com o sistema original indisponível.
+
+### Pre-requisitos
+- Banco de dados Postgres da aplicação principal para possibilitar backup dos emails
+- Banco de dados sqlite com as chaves
+Esses bancos precisam funcionar para possibilitar o backup dos emails pelo Notificador. 
+Uma vez realizado o backup os bancos são dispensáveis.
+
+### Como rodar
+```python
+python -m incident_notification.app
+```
+
 ---
 
 ## 🔧 Comandos Úteis no PostgreSQL
