@@ -1,0 +1,38 @@
+
+NOTIFICAÇÃO DE OCORRÊNCIA DE INCIDENTE RELACIONADA A DADOS PESSOAIS
+
+Conforme o Art. 48 da Lei Nº 13.709, DE 14 DE agosto DE 2018, dirigimos ao presente titular de dados pessoais junto à empresa XXXXXXXXXXXXXXXXXXXXX para informar que houve uma ocorrência de incidente possivelmente relacionada aos seus dados pessoais.
+
+I- NATUREZA DOS DADOS: Dados  Pessoais / <Dados Sensíveis
+
+II- INFORMAÇÕES SOBRE OS TITULARES ENVOLVIDOS:
+O incidente afetou todos os titulares de nossa base de dados, entre os períodos de ${startDate} e ${endDate}.
+Os dados afetados podem incluir:
+    - nome completo,
+    - e-mail,
+    - cargo,
+    - senhas e
+    - nome da empresa do titular.
+
+III- MEDIDAS TÉCNICAS UTILIZADAS PARA PROTEÇÃO DOS DADOS:
+    - Criptografia de dados;
+    - Controle de acesso baseado em perfil;
+    - Backups periódicos criptografados;
+    - Ambientes segregados;
+    - Atualizações regulares de sistemas e correções de segurança.
+
+IV- RISCOS RELACIONADOS AO INCIDENTE:
+    - Acessos suspeitos à conta e
+    - Uso não autorizados das informações.
+
+V- MOTIVOS DA DEMORA DESTA NOTIFICAÇÃO:
+    - Instabilidade dos serviços devido a própria ocorrência;
+    - Diligências preliminares para avaliar a gravidade do incidente e embasar esta notificação.
+
+VI- MEDIDAS QUE FORAM/SERÃO ADOTADAS PARA REVERTER/MITIGAR OS EFEITOS DO PREJUÍZO
+    - Revogação de credenciais comprometidas;
+    - Isolamento de sistemas afetados;
+    - Correção de vulnerabilidades;
+    - Reforço de autenticação;
+    - Monitoramento de sistemas e logs;
+    - Backup e restauração de dados.
