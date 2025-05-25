@@ -1,0 +1,28 @@
+name: Create PR for dev
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/dev'
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Create Pull Request to dev
+        run: |
+          # Verifica se já existe uma PR aberta para a branch 'dev'
+          pr_exists=$(gh pr list --state=open --head ${{ github.ref_name }} --base dev --json number --jq 'length')
+          if [ "$pr_exists" -eq 0 ]; then
+            # Se não existir PR aberta, cria uma nova
+            gh pr create --base dev --head ${{ github.ref_name }} --draft --title "Automated PR for dev" --body "This is an automated PR from branch ${{ github.ref_name }} to dev."
+          else
+            echo "PR already exists. Skipping creation."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

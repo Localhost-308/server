@@ -14,6 +14,13 @@ docker compose up
 
 ---
 
+Após iniciar o projeto, acesse a documentação via Swagger pelo seguinte link:
+```sh
+http://localhost:5005/apidocs/
+```
+
+---
+
 ## 🗄️ Acessando o Banco de Dados no Container
 Para acessar o banco de dados dentro do container, siga os passos abaixo:
 
@@ -30,6 +37,20 @@ O comando acima exibirá uma lista de containers. Encontre o container do banco 
 Substitua `ID-DO-CONTAINER` pelo ID real do container:
 ```sh
 docker exec -it ID-DO-CONTAINER psql -U postgres -d database
+```
+
+## Notificador de Incidentes lgpd
+O notificador de incidentes é uma aplicação desktop que possibilita notificar usuários mesmo com o sistema original indisponível.
+
+### Pre-requisitos
+- Banco de dados Postgres da aplicação principal para possibilitar backup dos emails
+- Banco de dados sqlite com as chaves
+Esses bancos precisam funcionar para possibilitar o backup dos emails pelo Notificador. 
+Uma vez realizado o backup os bancos são dispensáveis.
+
+### Como rodar
+```python
+python -m incident_notification.app
 ```
 
 ---
