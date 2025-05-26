@@ -388,11 +388,32 @@ def terms_accept():
     if not current_terms:
         abort(404, description='Terms not found!')
     terms_acceptance = TermsAcceptance(
-        Terms=get_jwt_identity(),
-        termos_id=current_terms.id,
+        user_id=get_jwt_identity(),
+        terms_id=current_terms.id,
         ip=request.remote_addr,
+        version=current_terms.version,
         user_agent=request.headers.get('User-Agent')
     )
     db.session.add(terms_acceptance)
     db.session.commit()
     return {'msg': 'ok'}
+
+
+@users.route('/accept-last-version', methods=['GET'])
+@jwt_required()
+def accepted_last_version():
+    current_terms = TermsAndCondition.query\
+        .filter(TermsAndCondition.mandatory==True)\
+        .order_by(TermsAndCondition.created_on.desc()).first()
+    print(current_terms.version)
+    if not current_terms:
+        abort(404, description='Terms not found!')
+    user = User.query.get(get_jwt_identity())
+    last = TermsAcceptance.query.filter_by(
+            user_id=user.id,
+            version=current_terms.version
+        ).first()
+    if not last:
+        return TermsAndConditionSchema().dump(current_terms)
+    else:
+        return {"msg":'Last version approved!'}
