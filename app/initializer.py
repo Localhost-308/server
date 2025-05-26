@@ -6,7 +6,7 @@ from flask_jwt_extended import JWTManager
 from flask_marshmallow import Marshmallow
 from flask import Flask, request, Response
 
-from app.models import User
+from app.models import User, TermsAcceptance, TermsAndCondition
 from app.database import db
 from app.config import Config
 # from app.util.chat import Chat
@@ -29,6 +29,8 @@ def make_shell_context():
     return {
         'db': db,
         'user': User,
+        'terms_acceptance': TermsAcceptance,
+        'terms_and_condition': TermsAndCondition,
         'mongo': mongo
     }
 
