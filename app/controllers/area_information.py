@@ -2,6 +2,7 @@ import pandas as pd
 from flask import Blueprint, abort, request, jsonify
 from flasgger import swag_from
 from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt
 
 from datetime import datetime
 
@@ -129,8 +130,12 @@ def save_area_information():
         if type(data) != list:
             data = [data]
 
+        claims = get_jwt()
+        company_id = claims.get("company_id")
+
         for a in data:
             a['measurement_date'] = datetime.strptime(a["measurement_date"], "%Y-%m-%d")
+            a['company_id'] = company_id  
             mongo.db.api.insert_one(a)
 
         return jsonify({"msg": Messages.SUCCESS_SAVE_SUCCESSFULLY('Area Information')})
@@ -217,6 +222,9 @@ def get_tree_information():
         start_date = datetime.strptime(params.get('start_date', '2000-01-01'), "%Y-%m-%d")
         end_date = datetime.strptime(params.get('end_date', datetime.now().strftime('%Y-%m-%d')), "%Y-%m-%d")
 
+        claims = get_jwt()
+        company_id = claims.get("company_id")
+
         if area_id:
             filters['area_id'] = int(area_id)
 
@@ -224,6 +232,7 @@ def get_tree_information():
             "$gte": start_date,
             "$lt": end_date
         }
+        filters['company_id'] = company_id 
 
         pipeline = [
             {"$match": filters},

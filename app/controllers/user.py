@@ -212,7 +212,8 @@ def login():
                 "first_name": decrypted_first_name,
                 "last_name": decrypted_last_name,
                 "email": decrypted_email,
-                "cargo": user.cargo.value
+                "cargo": user.cargo.value,
+                "company_id": user.company_id
             }
 
             sqlite_session.close()
@@ -323,7 +324,8 @@ def decrypt_user_list(user_list):
             "first_name": decrypted_first_name,
             "last_name": decrypted_last_name,
             "email": decrypted_email,
-            "cargo": u.cargo.value
+            "cargo": u.cargo.value,
+            "company_id": u.company_id
         }
         user_obj_list.append(user_obj)
 
